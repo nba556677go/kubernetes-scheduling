@@ -1,0 +1,428 @@
+I1006 14:49:20.445892       1 flags.go:64] FLAG: --allow-metric-labels="[]"
+I1006 14:49:20.445951       1 flags.go:64] FLAG: --authentication-kubeconfig=""
+I1006 14:49:20.445955       1 flags.go:64] FLAG: --authentication-skip-lookup="false"
+I1006 14:49:20.445959       1 flags.go:64] FLAG: --authentication-token-webhook-cache-ttl="10s"
+I1006 14:49:20.445964       1 flags.go:64] FLAG: --authentication-tolerate-lookup-failure="true"
+I1006 14:49:20.445966       1 flags.go:64] FLAG: --authorization-always-allow-paths="[/healthz,/readyz,/livez]"
+I1006 14:49:20.445973       1 flags.go:64] FLAG: --authorization-kubeconfig=""
+I1006 14:49:20.445975       1 flags.go:64] FLAG: --authorization-webhook-cache-authorized-ttl="10s"
+I1006 14:49:20.445978       1 flags.go:64] FLAG: --authorization-webhook-cache-unauthorized-ttl="10s"
+I1006 14:49:20.445980       1 flags.go:64] FLAG: --bind-address="0.0.0.0"
+I1006 14:49:20.445983       1 flags.go:64] FLAG: --cert-dir=""
+I1006 14:49:20.445986       1 flags.go:64] FLAG: --client-ca-file=""
+I1006 14:49:20.445988       1 flags.go:64] FLAG: --config="/etc/kubernetes/my-scheduler/my-scheduler-config.yaml"
+I1006 14:49:20.445990       1 flags.go:64] FLAG: --contention-profiling="true"
+I1006 14:49:20.445993       1 flags.go:64] FLAG: --disabled-metrics="[]"
+I1006 14:49:20.445997       1 flags.go:64] FLAG: --feature-gates=""
+I1006 14:49:20.446000       1 flags.go:64] FLAG: --help="false"
+I1006 14:49:20.446002       1 flags.go:64] FLAG: --http2-max-streams-per-connection="0"
+I1006 14:49:20.446006       1 flags.go:64] FLAG: --kube-api-burst="100"
+I1006 14:49:20.446009       1 flags.go:64] FLAG: --kube-api-content-type="application/vnd.kubernetes.protobuf"
+I1006 14:49:20.446012       1 flags.go:64] FLAG: --kube-api-qps="50"
+I1006 14:49:20.446016       1 flags.go:64] FLAG: --kubeconfig=""
+I1006 14:49:20.446019       1 flags.go:64] FLAG: --leader-elect="true"
+I1006 14:49:20.446021       1 flags.go:64] FLAG: --leader-elect-lease-duration="15s"
+I1006 14:49:20.446023       1 flags.go:64] FLAG: --leader-elect-renew-deadline="10s"
+I1006 14:49:20.446026       1 flags.go:64] FLAG: --leader-elect-resource-lock="leases"
+I1006 14:49:20.446028       1 flags.go:64] FLAG: --leader-elect-resource-name="kube-scheduler"
+I1006 14:49:20.446031       1 flags.go:64] FLAG: --leader-elect-resource-namespace="kube-system"
+I1006 14:49:20.446033       1 flags.go:64] FLAG: --leader-elect-retry-period="2s"
+I1006 14:49:20.446036       1 flags.go:64] FLAG: --lock-object-name="kube-scheduler"
+I1006 14:49:20.446039       1 flags.go:64] FLAG: --lock-object-namespace="kube-system"
+I1006 14:49:20.446041       1 flags.go:64] FLAG: --log-flush-frequency="5s"
+I1006 14:49:20.446044       1 flags.go:64] FLAG: --log-json-info-buffer-size="0"
+I1006 14:49:20.446050       1 flags.go:64] FLAG: --log-json-split-stream="false"
+I1006 14:49:20.446055       1 flags.go:64] FLAG: --logging-format="text"
+I1006 14:49:20.446058       1 flags.go:64] FLAG: --master=""
+I1006 14:49:20.446060       1 flags.go:64] FLAG: --permit-address-sharing="false"
+I1006 14:49:20.446063       1 flags.go:64] FLAG: --permit-port-sharing="false"
+I1006 14:49:20.446066       1 flags.go:64] FLAG: --pod-max-in-unschedulable-pods-duration="5m0s"
+I1006 14:49:20.446069       1 flags.go:64] FLAG: --profiling="true"
+I1006 14:49:20.446071       1 flags.go:64] FLAG: --requestheader-allowed-names="[]"
+I1006 14:49:20.446076       1 flags.go:64] FLAG: --requestheader-client-ca-file=""
+I1006 14:49:20.446078       1 flags.go:64] FLAG: --requestheader-extra-headers-prefix="[x-remote-extra-]"
+I1006 14:49:20.446083       1 flags.go:64] FLAG: --requestheader-group-headers="[x-remote-group]"
+I1006 14:49:20.446088       1 flags.go:64] FLAG: --requestheader-username-headers="[x-remote-user]"
+I1006 14:49:20.446092       1 flags.go:64] FLAG: --secure-port="10259"
+I1006 14:49:20.446095       1 flags.go:64] FLAG: --show-hidden-metrics-for-version=""
+I1006 14:49:20.446098       1 flags.go:64] FLAG: --tls-cert-file=""
+I1006 14:49:20.446100       1 flags.go:64] FLAG: --tls-cipher-suites="[]"
+I1006 14:49:20.446106       1 flags.go:64] FLAG: --tls-min-version=""
+I1006 14:49:20.446108       1 flags.go:64] FLAG: --tls-private-key-file=""
+I1006 14:49:20.446112       1 flags.go:64] FLAG: --tls-sni-cert-key="[]"
+I1006 14:49:20.446119       1 flags.go:64] FLAG: --v="4"
+I1006 14:49:20.446122       1 flags.go:64] FLAG: --version="false"
+I1006 14:49:20.446128       1 flags.go:64] FLAG: --vmodule=""
+I1006 14:49:20.446132       1 flags.go:64] FLAG: --write-config-to=""
+I1006 14:49:20.860447       1 serving.go:348] Generated self-signed cert in-memory
+I1006 14:49:20.860989       1 configfile.go:57] "KubeSchedulerConfiguration v1beta2 is deprecated in v1.25, will be removed in v1.28"
+W1006 14:49:20.861034       1 client_config.go:618] Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.
+I1006 14:49:21.441970       1 requestheader_controller.go:244] Loaded a new request header values for RequestHeaderAuthRequestController
+I1006 14:49:21.458030       1 configfile.go:105] "Using component config" config=<
+	apiVersion: kubescheduler.config.k8s.io/v1beta2
+	clientConnection:
+	  acceptContentTypes: ""
+	  burst: 100
+	  contentType: application/vnd.kubernetes.protobuf
+	  kubeconfig: ""
+	  qps: 50
+	enableContentionProfiling: true
+	enableProfiling: true
+	healthzBindAddress: ""
+	kind: KubeSchedulerConfiguration
+	leaderElection:
+	  leaderElect: false
+	  leaseDuration: 15s
+	  renewDeadline: 10s
+	  resourceLock: leases
+	  resourceName: kube-scheduler
+	  resourceNamespace: kube-system
+	  retryPeriod: 2s
+	metricsBindAddress: ""
+	parallelism: 16
+	percentageOfNodesToScore: 0
+	podInitialBackoffSeconds: 1
+	podMaxBackoffSeconds: 10
+	profiles:
+	- pluginConfig:
+	  - args:
+	      apiVersion: kubescheduler.config.k8s.io/v1beta2
+	      kind: DefaultPreemptionArgs
+	      minCandidateNodesAbsolute: 100
+	      minCandidateNodesPercentage: 10
+	    name: DefaultPreemption
+	  - args:
+	      apiVersion: kubescheduler.config.k8s.io/v1beta2
+	      hardPodAffinityWeight: 1
+	      ignorePreferredTermsOfExistingPods: false
+	      kind: InterPodAffinityArgs
+	    name: InterPodAffinity
+	  - args:
+	      apiVersion: kubescheduler.config.k8s.io/v1beta2
+	      kind: NodeAffinityArgs
+	    name: NodeAffinity
+	  - args:
+	      apiVersion: kubescheduler.config.k8s.io/v1beta2
+	      kind: NodeResourcesBalancedAllocationArgs
+	      resources:
+	      - name: cpu
+	        weight: 1
+	      - name: memory
+	        weight: 1
+	    name: NodeResourcesBalancedAllocation
+	  - args:
+	      apiVersion: kubescheduler.config.k8s.io/v1beta2
+	      kind: NodeResourcesFitArgs
+	      scoringStrategy:
+	        resources:
+	        - name: cpu
+	          weight: 1
+	        - name: memory
+	          weight: 1
+	        type: LeastAllocated
+	    name: NodeResourcesFit
+	  - args:
+	      apiVersion: kubescheduler.config.k8s.io/v1beta2
+	      defaultingType: System
+	      kind: PodTopologySpreadArgs
+	    name: PodTopologySpread
+	  - args:
+	      apiVersion: kubescheduler.config.k8s.io/v1beta2
+	      bindTimeoutSeconds: 600
+	      kind: VolumeBindingArgs
+	    name: VolumeBinding
+	  plugins:
+	    bind:
+	      enabled:
+	      - name: DefaultBinder
+	        weight: 0
+	    filter:
+	      enabled:
+	      - name: NodeUnschedulable
+	        weight: 0
+	      - name: NodeName
+	        weight: 0
+	      - name: TaintToleration
+	        weight: 0
+	      - name: NodeAffinity
+	        weight: 0
+	      - name: NodePorts
+	        weight: 0
+	      - name: NodeResourcesFit
+	        weight: 0
+	      - name: VolumeRestrictions
+	        weight: 0
+	      - name: EBSLimits
+	        weight: 0
+	      - name: GCEPDLimits
+	        weight: 0
+	      - name: NodeVolumeLimits
+	        weight: 0
+	      - name: AzureDiskLimits
+	        weight: 0
+	      - name: VolumeBinding
+	        weight: 0
+	      - name: VolumeZone
+	        weight: 0
+	      - name: PodTopologySpread
+	        weight: 0
+	      - name: InterPodAffinity
+	        weight: 0
+	    multiPoint: {}
+	    permit: {}
+	    postBind: {}
+	    postFilter:
+	      enabled:
+	      - name: DefaultPreemption
+	        weight: 0
+	    preBind:
+	      enabled:
+	      - name: VolumeBinding
+	        weight: 0
+	    preEnqueue:
+	      enabled:
+	      - name: SchedulingGates
+	        weight: 0
+	    preFilter:
+	      enabled:
+	      - name: NodeResourcesFit
+	        weight: 0
+	      - name: NodePorts
+	        weight: 0
+	      - name: VolumeRestrictions
+	        weight: 0
+	      - name: PodTopologySpread
+	        weight: 0
+	      - name: InterPodAffinity
+	        weight: 0
+	      - name: VolumeBinding
+	        weight: 0
+	      - name: VolumeZone
+	        weight: 0
+	      - name: NodeAffinity
+	        weight: 0
+	    preScore:
+	      enabled:
+	      - name: InterPodAffinity
+	        weight: 0
+	      - name: PodTopologySpread
+	        weight: 0
+	      - name: TaintToleration
+	        weight: 0
+	      - name: NodeAffinity
+	        weight: 0
+	      - name: NodeResourcesFit
+	        weight: 0
+	      - name: NodeResourcesBalancedAllocation
+	        weight: 0
+	    queueSort:
+	      enabled:
+	      - name: PrioritySort
+	        weight: 0
+	    reserve:
+	      enabled:
+	      - name: VolumeBinding
+	        weight: 0
+	    score:
+	      enabled:
+	      - name: NodeResourcesBalancedAllocation
+	        weight: 1
+	      - name: ImageLocality
+	        weight: 1
+	      - name: InterPodAffinity
+	        weight: 1
+	      - name: NodeResourcesFit
+	        weight: 1
+	      - name: NodeAffinity
+	        weight: 1
+	      - name: PodTopologySpread
+	        weight: 2
+	      - name: TaintToleration
+	        weight: 1
+	  schedulerName: my-scheduler
+ >
+I1006 14:49:21.458555       1 server.go:154] "Starting Kubernetes Scheduler" version="v1.27.2-1+b0754941196f4f-dirty"
+I1006 14:49:21.458578       1 server.go:156] "Golang settings" GOGC="" GOMAXPROCS="" GOTRACEBACK=""
+I1006 14:49:21.463648       1 requestheader_controller.go:169] Starting RequestHeaderAuthRequestController
+I1006 14:49:21.463683       1 shared_informer.go:311] Waiting for caches to sync for RequestHeaderAuthRequestController
+I1006 14:49:21.463732       1 configmap_cafile_content.go:202] "Starting controller" name="client-ca::kube-system::extension-apiserver-authentication::client-ca-file"
+I1006 14:49:21.463744       1 shared_informer.go:311] Waiting for caches to sync for client-ca::kube-system::extension-apiserver-authentication::client-ca-file
+I1006 14:49:21.463783       1 configmap_cafile_content.go:202] "Starting controller" name="client-ca::kube-system::extension-apiserver-authentication::requestheader-client-ca-file"
+I1006 14:49:21.463807       1 shared_informer.go:311] Waiting for caches to sync for client-ca::kube-system::extension-apiserver-authentication::requestheader-client-ca-file
+I1006 14:49:21.463914       1 reflector.go:287] Starting reflector *v1.ConfigMap (12h0m0s) from pkg/authentication/request/headerrequest/requestheader_controller.go:172
+I1006 14:49:21.463926       1 reflector.go:323] Listing and watching *v1.ConfigMap from pkg/authentication/request/headerrequest/requestheader_controller.go:172
+I1006 14:49:21.464081       1 reflector.go:287] Starting reflector *v1.ConfigMap (12h0m0s) from pkg/server/dynamiccertificates/configmap_cafile_content.go:206
+I1006 14:49:21.464083       1 reflector.go:287] Starting reflector *v1.ConfigMap (12h0m0s) from pkg/server/dynamiccertificates/configmap_cafile_content.go:206
+I1006 14:49:21.464096       1 reflector.go:323] Listing and watching *v1.ConfigMap from pkg/server/dynamiccertificates/configmap_cafile_content.go:206
+I1006 14:49:21.464105       1 reflector.go:323] Listing and watching *v1.ConfigMap from pkg/server/dynamiccertificates/configmap_cafile_content.go:206
+I1006 14:49:21.464487       1 tlsconfig.go:200] "Loaded serving cert" certName="Generated self signed cert" certDetail="\"localhost@1696603760\" [serving] validServingFor=[127.0.0.1,localhost,localhost] issuer=\"localhost-ca@1696603760\" (2023-10-06 13:49:20 +0000 UTC to 2024-10-05 13:49:20 +0000 UTC (now=2023-10-06 14:49:21.46442543 +0000 UTC))"
+I1006 14:49:21.465528       1 named_certificates.go:53] "Loaded SNI cert" index=0 certName="self-signed loopback" certDetail="\"apiserver-loopback-client@1696603761\" [serving] validServingFor=[apiserver-loopback-client] issuer=\"apiserver-loopback-client-ca@1696603761\" (2023-10-06 13:49:20 +0000 UTC to 2024-10-05 13:49:20 +0000 UTC (now=2023-10-06 14:49:21.465480351 +0000 UTC))"
+I1006 14:49:21.465568       1 secure_serving.go:210] Serving securely on [::]:10259
+I1006 14:49:21.465715       1 reflector.go:287] Starting reflector *v1.CSIDriver (0s) from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.465729       1 reflector.go:323] Listing and watching *v1.CSIDriver from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.466462       1 reflector.go:287] Starting reflector *v1.CSINode (0s) from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.466499       1 reflector.go:323] Listing and watching *v1.CSINode from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.466506       1 reflector.go:287] Starting reflector *v1.PodDisruptionBudget (0s) from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.466543       1 reflector.go:323] Listing and watching *v1.PodDisruptionBudget from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.466587       1 reflector.go:287] Starting reflector *v1.Node (0s) from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.466622       1 reflector.go:323] Listing and watching *v1.Node from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.466794       1 reflector.go:287] Starting reflector *v1.Namespace (0s) from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.466828       1 reflector.go:323] Listing and watching *v1.Namespace from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467682       1 reflector.go:287] Starting reflector *v1.Service (0s) from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467705       1 reflector.go:323] Listing and watching *v1.Service from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467687       1 reflector.go:287] Starting reflector *v1.PersistentVolume (0s) from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467719       1 reflector.go:287] Starting reflector *v1.Pod (0s) from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467722       1 reflector.go:287] Starting reflector *v1.StatefulSet (0s) from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467735       1 reflector.go:323] Listing and watching *v1.Pod from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467744       1 reflector.go:323] Listing and watching *v1.StatefulSet from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467744       1 reflector.go:287] Starting reflector *v1.PersistentVolumeClaim (0s) from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467762       1 reflector.go:323] Listing and watching *v1.PersistentVolumeClaim from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467785       1 reflector.go:287] Starting reflector *v1.CSIStorageCapacity (0s) from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467804       1 reflector.go:323] Listing and watching *v1.CSIStorageCapacity from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467846       1 tlsconfig.go:240] "Starting DynamicServingCertificateController"
+I1006 14:49:21.467727       1 reflector.go:323] Listing and watching *v1.PersistentVolume from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467906       1 reflector.go:287] Starting reflector *v1.ReplicationController (0s) from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467932       1 reflector.go:323] Listing and watching *v1.ReplicationController from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467725       1 reflector.go:287] Starting reflector *v1.StorageClass (0s) from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467981       1 reflector.go:323] Listing and watching *v1.StorageClass from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.467690       1 reflector.go:287] Starting reflector *v1.ReplicaSet (0s) from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.468025       1 reflector.go:323] Listing and watching *v1.ReplicaSet from vendor/k8s.io/client-go/informers/factory.go:150
+I1006 14:49:21.469698       1 node_tree.go:65] "Added node in listed group to NodeTree" node="node2" zone=""
+I1006 14:49:21.469933       1 eventhandlers.go:71] "Add event for node" node="node2"
+I1006 14:49:21.469973       1 node_tree.go:65] "Added node in listed group to NodeTree" node="node4" zone=""
+I1006 14:49:21.470081       1 eventhandlers.go:71] "Add event for node" node="node4"
+I1006 14:49:21.472616       1 eventhandlers.go:118] "Add event for unscheduled pod" pod="default/dummy-highest"
+I1006 14:49:21.472655       1 eventhandlers.go:186] "Add event for scheduled pod" pod="kube-system/coredns-5d78c9869d-pch79"
+I1006 14:49:21.473058       1 eventhandlers.go:186] "Add event for scheduled pod" pod="kube-system/coredns-5d78c9869d-s5zmr"
+I1006 14:49:21.473141       1 eventhandlers.go:118] "Add event for unscheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-10"
+I1006 14:49:21.473388       1 eventhandlers.go:118] "Add event for unscheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-20"
+I1006 14:49:21.473455       1 eventhandlers.go:118] "Add event for unscheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-5"
+I1006 14:49:21.473458       1 eventhandlers.go:186] "Add event for scheduled pod" pod="kube-system/etcd-node2"
+I1006 14:49:21.473552       1 eventhandlers.go:186] "Add event for scheduled pod" pod="kube-system/kube-apiserver-node2"
+I1006 14:49:21.473649       1 eventhandlers.go:186] "Add event for scheduled pod" pod="kube-system/kube-controller-manager-node2"
+I1006 14:49:21.473793       1 eventhandlers.go:186] "Add event for scheduled pod" pod="kube-system/kube-proxy-nktfw"
+I1006 14:49:21.473857       1 eventhandlers.go:186] "Add event for scheduled pod" pod="kube-system/kube-proxy-w94z4"
+I1006 14:49:21.473889       1 eventhandlers.go:186] "Add event for scheduled pod" pod="kube-system/kube-scheduler-node2"
+I1006 14:49:21.473917       1 eventhandlers.go:186] "Add event for scheduled pod" pod="kube-system/my-scheduler-7f774fd6f4-mrtfl"
+I1006 14:49:21.473962       1 eventhandlers.go:186] "Add event for scheduled pod" pod="kube-system/nvidia-device-plugin-daemonset-jc6s2"
+I1006 14:49:21.474092       1 eventhandlers.go:186] "Add event for scheduled pod" pod="kube-system/nvidia-device-plugin-daemonset-jmnrh"
+I1006 14:49:21.474160       1 eventhandlers.go:186] "Add event for scheduled pod" pod="kube-system/weave-net-4wvmg"
+I1006 14:49:21.474226       1 eventhandlers.go:186] "Add event for scheduled pod" pod="kube-system/weave-net-g9ghd"
+I1006 14:49:21.522207       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="130.35µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:51300" resp=200
+I1006 14:49:21.551473       1 eventhandlers.go:206] "Update event for scheduled pod" pod="kube-system/my-scheduler-7f774fd6f4-mrtfl"
+I1006 14:49:21.564683       1 shared_informer.go:341] caches populated
+I1006 14:49:21.564706       1 shared_informer.go:318] Caches are synced for RequestHeaderAuthRequestController
+I1006 14:49:21.564722       1 shared_informer.go:341] caches populated
+I1006 14:49:21.564748       1 shared_informer.go:318] Caches are synced for client-ca::kube-system::extension-apiserver-authentication::client-ca-file
+I1006 14:49:21.564869       1 shared_informer.go:341] caches populated
+I1006 14:49:21.564902       1 shared_informer.go:318] Caches are synced for client-ca::kube-system::extension-apiserver-authentication::requestheader-client-ca-file
+I1006 14:49:21.565149       1 tlsconfig.go:178] "Loaded client CA" index=0 certName="client-ca::kube-system::extension-apiserver-authentication::client-ca-file,client-ca::kube-system::extension-apiserver-authentication::requestheader-client-ca-file" certDetail="\"kubernetes\" [] validServingFor=[kubernetes] issuer=\"<self>\" (2023-07-21 07:28:07 +0000 UTC to 2033-07-18 07:28:07 +0000 UTC (now=2023-10-06 14:49:21.565101874 +0000 UTC))"
+I1006 14:49:21.566025       1 shared_informer.go:341] caches populated
+I1006 14:49:21.566047       1 shared_informer.go:341] caches populated
+I1006 14:49:21.566054       1 shared_informer.go:341] caches populated
+I1006 14:49:21.566061       1 shared_informer.go:341] caches populated
+I1006 14:49:21.566070       1 shared_informer.go:341] caches populated
+I1006 14:49:21.566081       1 shared_informer.go:341] caches populated
+I1006 14:49:21.566091       1 shared_informer.go:341] caches populated
+I1006 14:49:21.566101       1 shared_informer.go:341] caches populated
+I1006 14:49:21.566113       1 shared_informer.go:341] caches populated
+I1006 14:49:21.566140       1 shared_informer.go:341] caches populated
+I1006 14:49:21.566151       1 shared_informer.go:341] caches populated
+I1006 14:49:21.566164       1 shared_informer.go:341] caches populated
+I1006 14:49:21.566186       1 shared_informer.go:341] caches populated
+I1006 14:49:21.566198       1 shared_informer.go:341] caches populated
+I1006 14:49:21.566248       1 tlsconfig.go:200] "Loaded serving cert" certName="Generated self signed cert" certDetail="\"localhost@1696603760\" [serving] validServingFor=[127.0.0.1,localhost,localhost] issuer=\"localhost-ca@1696603760\" (2023-10-06 13:49:20 +0000 UTC to 2024-10-05 13:49:20 +0000 UTC (now=2023-10-06 14:49:21.566193164 +0000 UTC))"
+I1006 14:49:21.566263       1 schedule_one.go:63] "starting scheduling for next pod..."
+I1006 14:49:21.566366       1 scheduling_queue.go:594] "Pop called on the scheduling queue. current queue includes pods: " [%!s(*framework.QueuedPodInfo=&{0xc0001a0bd0 {13925171263882125667 1062548497 0x37fc240} 0 {13925171263882125667 1062548497 0x37fc240} map[] false}) %!s(*framework.QueuedPodInfo=&{0xc0003aa1c0 {13925171263882653303 1063076141 0x37fc240} 0 {13925171263882653303 1063076141 0x37fc240} map[] false}) %!s(*framework.QueuedPodInfo=&{0xc0003ece00 {13925171263882903758 1063326582 0x37fc240} 0 {13925171263882903758 1063326582 0x37fc240} map[] false}) %!s(*framework.QueuedPodInfo=&{0xc0003ecfc0 {13925171263882953286 1063376110 0x37fc240} 0 {13925171263882953286 1063376110 0x37fc240} map[] false})]="queue len:" %!s(int=4)="(MISSING)"
+I1006 14:49:21.566397       1 scheduling_queue.go:1130] "About to try and schedule pod" pod="default/dummy-highest"
+I1006 14:49:21.566410       1 schedule_one.go:81] "Attempting to schedule pod" pod="default/dummy-highest"
+I1006 14:49:21.567246       1 named_certificates.go:53] "Loaded SNI cert" index=0 certName="self-signed loopback" certDetail="\"apiserver-loopback-client@1696603761\" [serving] validServingFor=[apiserver-loopback-client] issuer=\"apiserver-loopback-client-ca@1696603761\" (2023-10-06 13:49:20 +0000 UTC to 2024-10-05 13:49:20 +0000 UTC (now=2023-10-06 14:49:21.567206908 +0000 UTC))"
+I1006 14:49:21.567399       1 tlsconfig.go:178] "Loaded client CA" index=0 certName="client-ca::kube-system::extension-apiserver-authentication::client-ca-file,client-ca::kube-system::extension-apiserver-authentication::requestheader-client-ca-file" certDetail="\"kubernetes\" [] validServingFor=[kubernetes] issuer=\"<self>\" (2023-07-21 07:28:07 +0000 UTC to 2033-07-18 07:28:07 +0000 UTC (now=2023-10-06 14:49:21.567357598 +0000 UTC))"
+I1006 14:49:21.567471       1 tlsconfig.go:178] "Loaded client CA" index=1 certName="client-ca::kube-system::extension-apiserver-authentication::client-ca-file,client-ca::kube-system::extension-apiserver-authentication::requestheader-client-ca-file" certDetail="\"front-proxy-ca\" [] validServingFor=[front-proxy-ca] issuer=\"<self>\" (2023-07-21 07:28:08 +0000 UTC to 2033-07-18 07:28:08 +0000 UTC (now=2023-10-06 14:49:21.567426147 +0000 UTC))"
+I1006 14:49:21.568404       1 tlsconfig.go:200] "Loaded serving cert" certName="Generated self signed cert" certDetail="\"localhost@1696603760\" [serving] validServingFor=[127.0.0.1,localhost,localhost] issuer=\"localhost-ca@1696603760\" (2023-10-06 13:49:20 +0000 UTC to 2024-10-05 13:49:20 +0000 UTC (now=2023-10-06 14:49:21.568372356 +0000 UTC))"
+I1006 14:49:21.569337       1 named_certificates.go:53] "Loaded SNI cert" index=0 certName="self-signed loopback" certDetail="\"apiserver-loopback-client@1696603761\" [serving] validServingFor=[apiserver-loopback-client] issuer=\"apiserver-loopback-client-ca@1696603761\" (2023-10-06 13:49:20 +0000 UTC to 2024-10-05 13:49:20 +0000 UTC (now=2023-10-06 14:49:21.569305844 +0000 UTC))"
+I1006 14:49:21.767256       1 schedule_one.go:83] "sleep when attempting to schedule pod to increase job intervals..."
+I1006 14:49:21.767910       1 schedule_one.go:63] "starting scheduling for next pod..."
+I1006 14:49:21.767987       1 scheduling_queue.go:594] "Pop called on the scheduling queue. current queue includes pods: " [%!s(*framework.QueuedPodInfo=&{0xc0003ece00 {13925171263882903758 1063326582 0x37fc240} 0 {13925171263882903758 1063326582 0x37fc240} map[] false}) %!s(*framework.QueuedPodInfo=&{0xc0003ecfc0 {13925171263882953286 1063376110 0x37fc240} 0 {13925171263882953286 1063376110 0x37fc240} map[] false}) %!s(*framework.QueuedPodInfo=&{0xc0003aa1c0 {13925171263882653303 1063076141 0x37fc240} 0 {13925171263882653303 1063076141 0x37fc240} map[] false})]="queue len:" %!s(int=3)="(MISSING)"
+I1006 14:49:21.768020       1 scheduling_queue.go:1130] "About to try and schedule pod" pod="default/job-train-imgclassfication-cuda-epoch-5"
+I1006 14:49:21.768044       1 schedule_one.go:81] "Attempting to schedule pod" pod="default/job-train-imgclassfication-cuda-epoch-5"
+I1006 14:49:21.869112       1 default_binder.go:53] "Attempting to bind pod to node" pod="default/dummy-highest" node="node2"
+I1006 14:49:21.882307       1 schedule_one.go:260] "Successfully bound pod to node" pod="default/dummy-highest" node="node2" evaluatedNodes=2 feasibleNodes=1
+I1006 14:49:21.882353       1 eventhandlers.go:186] "Add event for scheduled pod" pod="default/dummy-highest"
+I1006 14:49:21.882317       1 eventhandlers.go:161] "Delete event for unscheduled pod" pod="default/dummy-highest"
+I1006 14:49:21.904094       1 eventhandlers.go:206] "Update event for scheduled pod" pod="default/dummy-highest"
+I1006 14:49:21.969064       1 schedule_one.go:83] "sleep when attempting to schedule pod to increase job intervals..."
+I1006 14:49:21.969488       1 schedule_one.go:63] "starting scheduling for next pod..."
+I1006 14:49:21.969576       1 scheduling_queue.go:594] "Pop called on the scheduling queue. current queue includes pods: " [%!s(*framework.QueuedPodInfo=&{0xc0003aa1c0 {13925171263882653303 1063076141 0x37fc240} 0 {13925171263882653303 1063076141 0x37fc240} map[] false}) %!s(*framework.QueuedPodInfo=&{0xc0003ece00 {13925171263882903758 1063326582 0x37fc240} 0 {13925171263882903758 1063326582 0x37fc240} map[] false})]="queue len:" %!s(int=2)="(MISSING)"
+I1006 14:49:21.969608       1 scheduling_queue.go:1130] "About to try and schedule pod" pod="default/job-train-imgclassfication-cuda-epoch-10"
+I1006 14:49:21.969624       1 schedule_one.go:81] "Attempting to schedule pod" pod="default/job-train-imgclassfication-cuda-epoch-10"
+I1006 14:49:22.070648       1 default_binder.go:53] "Attempting to bind pod to node" pod="default/job-train-imgclassfication-cuda-epoch-5" node="node2"
+I1006 14:49:22.081476       1 eventhandlers.go:161] "Delete event for unscheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-5"
+I1006 14:49:22.081501       1 eventhandlers.go:186] "Add event for scheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-5"
+I1006 14:49:22.081788       1 schedule_one.go:260] "Successfully bound pod to node" pod="default/job-train-imgclassfication-cuda-epoch-5" node="node2" evaluatedNodes=2 feasibleNodes=1
+I1006 14:49:22.099784       1 eventhandlers.go:206] "Update event for scheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-5"
+I1006 14:49:22.170040       1 schedule_one.go:83] "sleep when attempting to schedule pod to increase job intervals..."
+I1006 14:49:22.170477       1 schedule_one.go:63] "starting scheduling for next pod..."
+I1006 14:49:22.170552       1 scheduling_queue.go:594] "Pop called on the scheduling queue. current queue includes pods: " [%!s(*framework.QueuedPodInfo=&{0xc0003ece00 {13925171263882903758 1063326582 0x37fc240} 0 {13925171263882903758 1063326582 0x37fc240} map[] false})]="queue len:" %!s(int=1)="(MISSING)"
+I1006 14:49:22.170593       1 scheduling_queue.go:1130] "About to try and schedule pod" pod="default/job-train-imgclassfication-cuda-epoch-20"
+I1006 14:49:22.170612       1 schedule_one.go:81] "Attempting to schedule pod" pod="default/job-train-imgclassfication-cuda-epoch-20"
+I1006 14:49:22.271268       1 default_binder.go:53] "Attempting to bind pod to node" pod="default/job-train-imgclassfication-cuda-epoch-10" node="node2"
+I1006 14:49:22.277651       1 eventhandlers.go:161] "Delete event for unscheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-10"
+I1006 14:49:22.277718       1 eventhandlers.go:186] "Add event for scheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-10"
+I1006 14:49:22.277952       1 schedule_one.go:260] "Successfully bound pod to node" pod="default/job-train-imgclassfication-cuda-epoch-10" node="node2" evaluatedNodes=2 feasibleNodes=1
+I1006 14:49:22.294119       1 eventhandlers.go:206] "Update event for scheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-10"
+I1006 14:49:22.370999       1 schedule_one.go:83] "sleep when attempting to schedule pod to increase job intervals..."
+I1006 14:49:22.371414       1 schedule_one.go:63] "starting scheduling for next pod..."
+I1006 14:49:22.371464       1 scheduling_queue.go:594] "Pop called on the scheduling queue. current queue includes pods: " []="queue len:" %!s(int=0)="(MISSING)"
+I1006 14:49:22.472392       1 default_binder.go:53] "Attempting to bind pod to node" pod="default/job-train-imgclassfication-cuda-epoch-20" node="node2"
+I1006 14:49:22.478571       1 eventhandlers.go:161] "Delete event for unscheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-20"
+I1006 14:49:22.478620       1 eventhandlers.go:186] "Add event for scheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-20"
+I1006 14:49:22.478778       1 schedule_one.go:260] "Successfully bound pod to node" pod="default/job-train-imgclassfication-cuda-epoch-20" node="node2" evaluatedNodes=2 feasibleNodes=1
+I1006 14:49:22.499018       1 eventhandlers.go:206] "Update event for scheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-20"
+I1006 14:49:23.538057       1 eventhandlers.go:206] "Update event for scheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-10"
+I1006 14:49:23.555018       1 eventhandlers.go:206] "Update event for scheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-20"
+I1006 14:49:23.567421       1 eventhandlers.go:206] "Update event for scheduled pod" pod="default/dummy-highest"
+I1006 14:49:23.583422       1 eventhandlers.go:206] "Update event for scheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-5"
+I1006 14:49:27.810073       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="141.087µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:51310" resp=200
+I1006 14:49:37.809765       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="76.474µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:45878" resp=200
+I1006 14:49:37.813838       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="56.505µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:45880" resp=200
+I1006 14:49:47.805438       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="86.573µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:43736" resp=200
+I1006 14:49:47.808897       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="76.157µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:43738" resp=200
+I1006 14:49:57.805842       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="120.736µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:60392" resp=200
+I1006 14:49:57.807298       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="105.291µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:60408" resp=200
+I1006 14:50:07.807126       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="95.334µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:37102" resp=200
+I1006 14:50:07.811212       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="79.885µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:37106" resp=200
+I1006 14:50:17.805169       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="107.144µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:51182" resp=200
+I1006 14:50:17.808895       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="54.305µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:51188" resp=200
+I1006 14:50:27.809092       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="114.376µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:57260" resp=200
+I1006 14:50:27.816550       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="79.91µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:57274" resp=200
+I1006 14:50:37.806676       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="72.766µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:58412" resp=200
+I1006 14:50:37.809126       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="89.694µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:58420" resp=200
+I1006 14:50:47.808902       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="101.507µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:37592" resp=200
+I1006 14:50:47.809218       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="88.932µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:37594" resp=200
+I1006 14:50:53.780230       1 eventhandlers.go:206] "Update event for scheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-5"
+I1006 14:50:55.021028       1 eventhandlers.go:231] "Delete event for scheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-5"
+I1006 14:50:57.809769       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="105.35µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:39624" resp=200
+I1006 14:50:57.816945       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="83.315µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:39642" resp=200
+I1006 14:51:07.809000       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="100.551µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:36428" resp=200
+I1006 14:51:07.810194       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="87.809µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:36432" resp=200
+I1006 14:51:17.807274       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="95.477µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:54620" resp=200
+I1006 14:51:17.808579       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="104.215µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:54614" resp=200
+I1006 14:51:27.809344       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="151.313µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:32858" resp=200
+I1006 14:51:27.816038       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="98.898µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:32878" resp=200
+I1006 14:51:37.806490       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="115.864µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:47144" resp=200
+I1006 14:51:37.809571       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="81.75µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:47154" resp=200
+I1006 14:51:47.805492       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="56.41µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:55846" resp=200
+I1006 14:51:47.807599       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="84.391µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:55848" resp=200
+I1006 14:51:57.809001       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="105.356µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:52072" resp=200
+I1006 14:51:57.809454       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="84.555µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:52070" resp=200
+I1006 14:52:01.946210       1 eventhandlers.go:206] "Update event for scheduled pod" pod="default/dummy-highest"
+I1006 14:52:03.295780       1 eventhandlers.go:231] "Delete event for scheduled pod" pod="default/dummy-highest"
+I1006 14:52:04.961307       1 eventhandlers.go:206] "Update event for scheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-10"
+I1006 14:52:06.227130       1 eventhandlers.go:231] "Delete event for scheduled pod" pod="default/job-train-imgclassfication-cuda-epoch-10"
+I1006 14:52:07.807556       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="107.657µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:46846" resp=200
+I1006 14:52:07.809115       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="98.484µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:46848" resp=200
+I1006 14:52:17.809341       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="115.249µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:57548" resp=200
+I1006 14:52:17.810510       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="77.962µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:57534" resp=200
+I1006 14:52:27.810041       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="101.846µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:48590" resp=200
+I1006 14:52:27.817516       1 httplog.go:132] "HTTP" verb="GET" URI="/healthz" latency="78.163µs" userAgent="kube-probe/1.27" audit-ID="" srcIP="10.32.0.1:48598" resp=200

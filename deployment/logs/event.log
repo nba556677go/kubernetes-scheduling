@@ -1,0 +1,57 @@
+LAST SEEN   TYPE     REASON      OBJECT                                         MESSAGE
+58m         Normal   Scheduled   pod/dummy-highest                              Successfully assigned default/dummy-highest to node2
+58m         Normal   Pulled      pod/dummy-highest                              Container image "nba556677/train_tasks:cuda11.6" already present on machine
+58m         Normal   Created     pod/dummy-highest                              Created container dummy
+58m         Normal   Started     pod/dummy-highest                              Started container dummy
+58m         Normal   Scheduled   pod/job-train-imgclassfication-cuda-epoch-5    Successfully assigned default/job-train-imgclassfication-cuda-epoch-5 to node2
+58m         Normal   Pulled      pod/job-train-imgclassfication-cuda-epoch-5    Container image "nba556677/train_tasks:cuda11.6" already present on machine
+58m         Normal   Scheduled   pod/job-train-imgclassfication-cuda-epoch-20   Successfully assigned default/job-train-imgclassfication-cuda-epoch-20 to node2
+58m         Normal   Created     pod/job-train-imgclassfication-cuda-epoch-5    Created container c-train-epoch-5
+58m         Normal   Scheduled   pod/job-train-imgclassfication-cuda-epoch-10   Successfully assigned default/job-train-imgclassfication-cuda-epoch-10 to node2
+58m         Normal   Pulled      pod/job-train-imgclassfication-cuda-epoch-10   Container image "nba556677/train_tasks:cuda11.6" already present on machine
+58m         Normal   Started     pod/job-train-imgclassfication-cuda-epoch-20   Started container c-train-epoch-20
+58m         Normal   Started     pod/job-train-imgclassfication-cuda-epoch-10   Started container c-train-epoch-5
+58m         Normal   Created     pod/job-train-imgclassfication-cuda-epoch-20   Created container c-train-epoch-20
+58m         Normal   Created     pod/job-train-imgclassfication-cuda-epoch-10   Created container c-train-epoch-5
+58m         Normal   Pulled      pod/job-train-imgclassfication-cuda-epoch-20   Container image "nba556677/train_tasks:cuda11.6" already present on machine
+58m         Normal   Started     pod/job-train-imgclassfication-cuda-epoch-5    Started container c-train-epoch-5
+58m         Normal   Scheduled   pod/job-train-imgclassfication-cuda-epoch-30   Successfully assigned default/job-train-imgclassfication-cuda-epoch-30 to node2
+58m         Normal   Scheduled   pod/job-train-imgclassfication-cuda-epoch-3    Successfully assigned default/job-train-imgclassfication-cuda-epoch-3 to node2
+58m         Normal   Started     pod/job-train-imgclassfication-cuda-epoch-15   Started container c-train-epoch-15
+58m         Normal   Created     pod/job-train-imgclassfication-cuda-epoch-15   Created container c-train-epoch-15
+58m         Normal   Pulled      pod/job-train-imgclassfication-cuda-epoch-3    Container image "nba556677/train_tasks:cuda11.6" already present on machine
+58m         Normal   Pulled      pod/job-train-imgclassfication-cuda-epoch-15   Container image "nba556677/train_tasks:cuda11.6" already present on machine
+58m         Normal   Scheduled   pod/job-train-imgclassfication-cuda-epoch-15   Successfully assigned default/job-train-imgclassfication-cuda-epoch-15 to node2
+58m         Normal   Created     pod/job-train-imgclassfication-cuda-epoch-30   Created container c-train-epoch-30
+58m         Normal   Started     pod/job-train-imgclassfication-cuda-epoch-30   Started container c-train-epoch-30
+58m         Normal   Created     pod/job-train-imgclassfication-cuda-epoch-3    Created container c-train-epoch-3
+58m         Normal   Started     pod/job-train-imgclassfication-cuda-epoch-3    Started container c-train-epoch-3
+58m         Normal   Pulled      pod/job-train-imgclassfication-cuda-epoch-30   Container image "nba556677/train_tasks:cuda11.6" already present on machine
+76s         Normal   Scheduled   pod/dummy-highest                              Successfully assigned default/dummy-highest to node2
+75s         Normal   Pulled      pod/dummy-highest                              Container image "nba556677/train_tasks:cuda11.6" already present on machine
+75s         Normal   Created     pod/dummy-highest                              Created container dummy
+75s         Normal   Started     pod/dummy-highest                              Started container dummy
+75s         Normal   Scheduled   pod/job-train-imgclassfication-cuda-epoch-5    Successfully assigned default/job-train-imgclassfication-cuda-epoch-5 to node2
+74s         Normal   Pulled      pod/job-train-imgclassfication-cuda-epoch-5    Container image "nba556677/train_tasks:cuda11.6" already present on machine
+74s         Normal   Created     pod/job-train-imgclassfication-cuda-epoch-5    Created container c-train-epoch-5
+74s         Normal   Started     pod/job-train-imgclassfication-cuda-epoch-5    Started container c-train-epoch-5
+74s         Normal   Scheduled   pod/job-train-imgclassfication-cuda-epoch-10   Successfully assigned default/job-train-imgclassfication-cuda-epoch-10 to node2
+73s         Normal   Created     pod/job-train-imgclassfication-cuda-epoch-10   Created container c-train-epoch-5
+73s         Normal   Pulled      pod/job-train-imgclassfication-cuda-epoch-10   Container image "nba556677/train_tasks:cuda11.6" already present on machine
+73s         Normal   Started     pod/job-train-imgclassfication-cuda-epoch-10   Started container c-train-epoch-5
+73s         Normal   Scheduled   pod/job-train-imgclassfication-cuda-epoch-20   Successfully assigned default/job-train-imgclassfication-cuda-epoch-20 to node2
+72s         Normal   Pulled      pod/job-train-imgclassfication-cuda-epoch-20   Container image "nba556677/train_tasks:cuda11.6" already present on machine
+72s         Normal   Started     pod/job-train-imgclassfication-cuda-epoch-20   Started container c-train-epoch-20
+72s         Normal   Created     pod/job-train-imgclassfication-cuda-epoch-20   Created container c-train-epoch-20
+63s         Normal   Scheduled   pod/job-train-imgclassfication-cuda-epoch-30   Successfully assigned default/job-train-imgclassfication-cuda-epoch-30 to node2
+62s         Normal   Created     pod/job-train-imgclassfication-cuda-epoch-30   Created container c-train-epoch-30
+62s         Normal   Started     pod/job-train-imgclassfication-cuda-epoch-30   Started container c-train-epoch-30
+62s         Normal   Pulled      pod/job-train-imgclassfication-cuda-epoch-30   Container image "nba556677/train_tasks:cuda11.6" already present on machine
+62s         Normal   Scheduled   pod/job-train-imgclassfication-cuda-epoch-3    Successfully assigned default/job-train-imgclassfication-cuda-epoch-3 to node2
+61s         Normal   Created     pod/job-train-imgclassfication-cuda-epoch-3    Created container c-train-epoch-3
+61s         Normal   Scheduled   pod/job-train-imgclassfication-cuda-epoch-15   Successfully assigned default/job-train-imgclassfication-cuda-epoch-15 to node2
+61s         Normal   Pulled      pod/job-train-imgclassfication-cuda-epoch-3    Container image "nba556677/train_tasks:cuda11.6" already present on machine
+61s         Normal   Started     pod/job-train-imgclassfication-cuda-epoch-3    Started container c-train-epoch-3
+60s         Normal   Started     pod/job-train-imgclassfication-cuda-epoch-15   Started container c-train-epoch-15
+60s         Normal   Created     pod/job-train-imgclassfication-cuda-epoch-15   Created container c-train-epoch-15
+60s         Normal   Pulled      pod/job-train-imgclassfication-cuda-epoch-15   Container image "nba556677/train_tasks:cuda11.6" already present on machine

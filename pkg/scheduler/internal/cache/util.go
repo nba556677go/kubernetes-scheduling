@@ -31,8 +31,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	schedutil "k8s.io/kubernetes/pkg/scheduler/util"
+	//schedutil "k8s.io/kubernetes/pkg/scheduler/util"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
+	//k8s.io/klog/v2"
 )
 
 // metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +44,6 @@ import (
 const SCHEDULER = ES
 const AlphaFair = 0.5 //
 const NUM_USERS = 4
-const SCHEDULER_PERIOD = 100 // Miliseconds
 
 const AVG_BETA = 95.0 * MILLI // based on simulator.
 
@@ -77,7 +77,7 @@ const (
 const NvidiaGPU = "nvidia.com/gpu"
 
 type ProcessingTime struct {
-	pod            *v1.Pod
+	podInfo       *framework.QueuedPodInfo
 	isGPU          bool
 	processingTime int64
 }
@@ -227,11 +227,11 @@ func DeleteFromSchedPodQueue(pod *v1.Pod) {
 }
 
 // tanle
-func GetSecondaryDemand(pod *v1.Pod) (int64, int64, int64) {
+func GetSecondaryDemand(pInfo *framework.QueuedPodInfo) (int64, int64, int64) {
 	milliCPU := int64(0)
 	gpu := int64(0)
 	memInGi := int64(0)
-	for _, container := range pod.Spec.Containers {
+	for _, container := range pInfo.Pod.Spec.Containers {
 		// switch demands
 		secDemand := container.Command[5]
 		strDemands := strings.Split(secDemand, ",")
@@ -556,11 +556,12 @@ func GetActiveUsers(pods []*v1.Pod) []string {
 	return namespaces
 }
 
-func GetQueueUsers(pods []*v1.Pod) []string {
+func GetQueueUsers(pods []interface{},) []string {
 	namespaces := make([]string, 0)
-	for _, pod := range pods {
-		if !Contains(namespaces, pod.Namespace) {
-			namespaces = append(namespaces, pod.Namespace)
+	for _, podInfo := range pods {
+		var podName = podInfo.(*framework.QueuedPodInfo).PodInfo.Pod.Namespace
+		if !Contains(namespaces, podName) {
+			namespaces = append(namespaces, podName)
 		}
 	}
 	return namespaces
@@ -737,15 +738,15 @@ func IsGpuPod(pod *v1.Pod) bool {
 // 	}
 // }
 
-func SubmitOnOtherDevice(client clientset.Interface, pod *v1.Pod, replicatedPod *v1.Pod) {
+func SubmitOnOtherDevice(client clientset.Interface, pInfo *framework.QueuedPodInfo, replicatedpInfo *framework.QueuedPodInfo) {
 	// pod.Spec.Containers = replicatedPod.Spec.Containers
 	// foregroundDelete := metav1.DeletePropagationForeground
 	// if err := client.CoreV1().Pods(pod.Namespace).Delete(pod.Name, &metav1.DeleteOptions{PropagationPolicy: &foregroundDelete}); err != nil {
-	if err := client.CoreV1().Pods(pod.Namespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{}); err != nil {
-		runtime.HandleError(fmt.Errorf("unable to DELETE pod in kubectl %T: %v", pod, err))
+	if err := client.CoreV1().Pods(pInfo.Pod.Namespace).Delete(context.TODO(), pInfo.Pod.Name, metav1.DeleteOptions{}); err != nil {
+		runtime.HandleError(fmt.Errorf("unable to DELETE pod in kubectl %T: %v", pInfo.Pod, err))
 	}
-	if _, err := client.CoreV1().Pods(replicatedPod.Namespace).Create(context.TODO(), replicatedPod, metav1.CreateOptions{}); err != nil {
-		runtime.HandleError(fmt.Errorf("unable to CREATE pod in kubectl %T: %v", replicatedPod, err))
+	if _, err := client.CoreV1().Pods(replicatedpInfo.Pod.Namespace).Create(context.TODO(), replicatedpInfo.Pod, metav1.CreateOptions{}); err != nil {
+		runtime.HandleError(fmt.Errorf("unable to CREATE pod in kubectl %T: %v", replicatedpInfo.Pod, err))
 	}
 	// if p, err := client.CoreV1().Pods(replicatedPod.Namespace).Update(replicatedPod); err == nil {
 	// 	pod = p
@@ -755,19 +756,21 @@ func SubmitOnOtherDevice(client clientset.Interface, pod *v1.Pod, replicatedPod 
 	// }
 }
 
-func CreatePodOnOtherDevice_bk(pod *v1.Pod, toBeGPU bool) (*v1.Pod, bool) {
+
+func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*framework.QueuedPodInfo, bool) {
+	
 	// check the device of the pod
-	for _, container := range pod.Spec.Containers {
+	for _, container := range pInfo.Pod.Spec.Containers {
 		if strings.Contains(container.Image, "gpu") && toBeGPU {
-			return pod, false
+			return pInfo, false
 		}
 		if strings.Contains(container.Image, "cpu") && !toBeGPU {
-			return pod, false
+			return pInfo, false
 		}
 	}
 
-	// replicatedPod := pod.DeepCopy()
-	for cName, container := range pod.Spec.Containers {
+	replicatedPodInfo := pInfo.DeepCopy()
+	for cName, container := range replicatedPodInfo.Pod.Spec.Containers {
 		if toBeGPU {
 			container.Image = "lenhattan86/ira:gpu"
 		} else {
@@ -782,7 +785,7 @@ func CreatePodOnOtherDevice_bk(pod *v1.Pod, toBeGPU bool) (*v1.Pod, bool) {
 		container.Command[5] = container.Command[4]
 		container.Command[4] = mainDemand
 
-		cpuDemand, gpuDemand, memory := GetSecondaryDemand(pod)
+		cpuDemand, gpuDemand, memory := GetSecondaryDemand(pInfo)
 
 		for rName := range container.Resources.Requests {
 			quantity := container.Resources.Requests[rName]
@@ -801,79 +804,20 @@ func CreatePodOnOtherDevice_bk(pod *v1.Pod, toBeGPU bool) (*v1.Pod, bool) {
 			container.Resources.Requests[rName] = quantity
 			container.Resources.Limits[rName] = quantity
 		}
-		pod.Spec.Containers[cName] = container
+		replicatedPodInfo.Pod.Spec.Containers[cName] = container
 	}
 
-	// replicatedPod.ResourceVersion = ""
-	// replicatedPod.Spec.NodeName = ""
-	// replicatedPod.Annotations = nil
+	replicatedPodInfo.Pod.ResourceVersion = ""
+	replicatedPodInfo.Pod.Spec.NodeName = ""
+	replicatedPodInfo.Pod.Annotations = nil
 	// replicatedPod.ResourceVersion = pod.ResourceVersion
 	// replicatedPod.Spec.NodeName = pod.Spec.NodeName
 	// replicatedPod.Annotations = pod.Annotations
 
-	return pod, true
+	return replicatedPodInfo, true
 }
 
-func CreatePodOnOtherDevice(pod *v1.Pod, toBeGPU bool) (*v1.Pod, bool) {
-	// check the device of the pod
-	for _, container := range pod.Spec.Containers {
-		if strings.Contains(container.Image, "gpu") && toBeGPU {
-			return pod, false
-		}
-		if strings.Contains(container.Image, "cpu") && !toBeGPU {
-			return pod, false
-		}
-	}
-
-	replicatedPod := pod.DeepCopy()
-	for cName, container := range replicatedPod.Spec.Containers {
-		if toBeGPU {
-			container.Image = "lenhattan86/ira:gpu"
-		} else {
-			container.Image = "lenhattan86/ira:cpu"
-		}
-		// switch commands
-		mainCmd := container.Command[3]
-		container.Command[3] = container.Command[2]
-		container.Command[2] = mainCmd
-		// switch demands
-		mainDemand := container.Command[5]
-		container.Command[5] = container.Command[4]
-		container.Command[4] = mainDemand
-
-		cpuDemand, gpuDemand, memory := GetSecondaryDemand(pod)
-
-		for rName := range container.Resources.Requests {
-			quantity := container.Resources.Requests[rName]
-			switch rName {
-			case v1.ResourceCPU:
-				quantity.SetMilli(cpuDemand)
-			case NvidiaGPU:
-				if ENABLE_MOCKUP_GPU {
-					quantity.Set(0)
-				} else {
-					quantity.Set(gpuDemand)
-				}
-			case v1.ResourceMemory:
-				quantity.Set(memory * GI)
-			}
-			container.Resources.Requests[rName] = quantity
-			container.Resources.Limits[rName] = quantity
-		}
-		replicatedPod.Spec.Containers[cName] = container
-	}
-
-	replicatedPod.ResourceVersion = ""
-	replicatedPod.Spec.NodeName = ""
-	replicatedPod.Annotations = nil
-	// replicatedPod.ResourceVersion = pod.ResourceVersion
-	// replicatedPod.Spec.NodeName = pod.Spec.NodeName
-	// replicatedPod.Annotations = pod.Annotations
-
-	return replicatedPod, true
-}
-
-func EqualShare(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
+/*func EqualShare(allPods []interface{}, client clientset.Interface) *v1.Pod {
 	// get the list of active users (having jobs queued up.)
 	users := GetQueueUsers(allPods)
 	// glog.Infof("[tanle] active users: %v", users)
@@ -911,7 +855,8 @@ func EqualShare(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 			// pick the pod with the shortest GPU complt.
 			// pod := allPods[0]
 			if USING_FIFO {
-				for _, p := range allPods {
+				for _, podInfo := range allPods {
+					var p = podInfo.(*framework.QueuedPodInfo).PodInfo.Pod
 					if minUser == p.Namespace {
 						pod = p
 						// isGPU = IsGpuPod(pod)
@@ -919,7 +864,8 @@ func EqualShare(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 					}
 				}
 			} else {
-				for _, p := range allPods {
+				for _, podInfo := range allPods {
+					var p = podInfo.(*framework.QueuedPodInfo).PodInfo.Pod
 					complTime := GetGpuComplTime(p)
 					if minUser == p.Namespace && GetGpuComplTime(p) < shortestGPUComplt {
 						pod = p
@@ -958,7 +904,8 @@ func EqualShare(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 			// glog.Infof("[tanle] pick user: %v", minUser)
 			// pick the pod with the shortest CPU complt.
 			if USING_FIFO {
-				for _, p := range allPods {
+				for _, podInfo := range allPods {
+					var p = podInfo.(*framework.QueuedPodInfo).PodInfo.Pod
 					if minUser == p.Namespace {
 						pod = p
 						// isGPU = IsGpuPod(pod)
@@ -967,7 +914,8 @@ func EqualShare(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 				}
 			} else {
 				shortestCPUComplt := int64(math.MaxInt64)
-				for _, p := range allPods {
+				for _, podInfo := range allPods {
+					var p = podInfo.(*framework.QueuedPodInfo).PodInfo.Pod
 					complTime := GetCpuComplTime(p)
 					if minUser == p.Namespace && GetCpuComplTime(p) < shortestCPUComplt {
 						pod = p
@@ -986,10 +934,10 @@ func EqualShare(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 	}
 
 	return nil
-}
+}*/
 
 // EqualShare: ES
-func OnlineEqualShare(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
+/*func OnlineEqualShare(allPods []interface{}, client clientset.Interface) *v1.Pod {
 	// get the list of active users (having jobs queued up.)
 	activeUsers := GetQueueUsers(allPods)
 	// glog.Infof("[tanle] active users: %v", activeUsers)
@@ -1029,7 +977,8 @@ func OnlineEqualShare(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 		// pick the pod with the shortest GPU complt.
 		// pod := allPods[0]
 		if USING_FIFO {
-			for _, p := range allPods {
+			for _, podInfo := range allPods {
+				var p = podInfo.(*framework.QueuedPodInfo).PodInfo.Pod
 				if minUser == p.Namespace {
 					pod = p
 					// isGPU = IsGpuPod(pod)
@@ -1037,7 +986,8 @@ func OnlineEqualShare(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 				}
 			}
 		} else {
-			for _, p := range allPods {
+			for _, podInfo := range allPods {
+				var p = podInfo.(*framework.QueuedPodInfo).PodInfo.Pod
 				complTime := GetGpuComplTime(p)
 				if minUser == p.Namespace && GetGpuComplTime(p) < shortestGPUComplt {
 					pod = p
@@ -1066,7 +1016,8 @@ func OnlineEqualShare(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 		// glog.Infof("[tanle] pick user: %v", minUser)
 		// pick the pod with the shortest CPU complt.
 		if USING_FIFO {
-			for _, p := range allPods {
+			for _, podInfo := range allPods {
+				var p = podInfo.(*framework.QueuedPodInfo).PodInfo.Pod
 				if minUser == p.Namespace {
 					pod = p
 					// isGPU = IsGpuPod(pod)
@@ -1075,7 +1026,8 @@ func OnlineEqualShare(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 			}
 		} else {
 			shortestCPUComplt := int64(math.MaxInt64)
-			for _, p := range allPods {
+			for _, podInfo := range allPods {
+				var p = podInfo.(*framework.QueuedPodInfo).PodInfo.Pod
 				complTime := GetCpuComplTime(p)
 				if minUser == p.Namespace && GetCpuComplTime(p) < shortestCPUComplt {
 					pod = p
@@ -1093,9 +1045,9 @@ func OnlineEqualShare(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 	}
 
 	return nil
-}
+}*/
 
-func OnlineDRF(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
+/*func OnlineDRF(allPods []interface{}, client clientset.Interface) *v1.Pod {
 	// get the list of active users (having jobs queued up.)
 	activeUsers := GetQueueUsers(allPods)
 	_, capacity := GetResourceUsageAndCapacity()
@@ -1141,15 +1093,16 @@ func OnlineDRF(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 		isGPU = true
 		// match FIFO with the simulator :: WORKAROUND
 		sort.SliceStable(allPods, func(i, j int) bool {
-			pod1 := allPods[i]
-			pod2 := allPods[j]
+			pod1 := allPods[i].(*framework.QueuedPodInfo).PodInfo.Pod
+			pod2 := allPods[j].(*framework.QueuedPodInfo).PodInfo.Pod
 			if len(pod1.Name) != len(pod2.Name) {
 				return len(pod1.Name) < len(pod2.Name)
 			}
 			return pod1.Name < pod2.Name
 		})
 
-		for _, p := range allPods {
+		for _, podInfo := range allPods {
+			var p = podInfo.(*framework.QueuedPodInfo).PodInfo.Pod
 			if minUser == p.Namespace {
 				pod = p
 				// _, isGPU = GetShortestComplTime(p)
@@ -1160,7 +1113,8 @@ func OnlineDRF(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 		shortestComplt := int64(math.MaxInt64)
 		// glog.Infof("[tanle] usage/capacity %v/%v", usage, capacity)
 		complTime := shortestComplt
-		for _, p := range allPods {
+		for _, podInfo := range allPods {
+			var p = podInfo.(*framework.QueuedPodInfo).PodInfo.Pod
 			isGPUTemp := true
 			complTime, isGPUTemp = GetShortestComplTime(p)
 			if minUser == p.Namespace && complTime < shortestComplt {
@@ -1179,9 +1133,9 @@ func OnlineDRF(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 	}
 
 	return pod
-}
+}*/
 
-func OnlineDRFExt(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
+/*func OnlineDRFExt(allPods []interface{}, client clientset.Interface) *v1.Pod {
 	// get the list of active users (having jobs queued up.)
 	activeUsers := GetQueueUsers(allPods)
 	usage, capacity := GetResourceUsageAndCapacity()
@@ -1227,7 +1181,8 @@ func OnlineDRFExt(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 	var pod *v1.Pod
 	if isGPUAvaiable {
 		shortestGPUComplt := int64(math.MaxInt64)
-		for _, p := range allPods {
+		for _, pod := range allPods {
+			var p = pod.(*framework.QueuedPodInfo).PodInfo.Pod
 			complTime := GetGpuComplTime(p)
 			if minUser == p.Namespace && complTime < shortestGPUComplt {
 				pod = p
@@ -1243,7 +1198,8 @@ func OnlineDRFExt(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 		return pod
 	} else if isCPUAvaiable {
 		shortestCPUComplt := int64(math.MaxInt64)
-		for _, p := range allPods {
+		for _, pod := range allPods {
+			var p = pod.(*framework.QueuedPodInfo).PodInfo.Pod
 			complTime := GetCpuComplTime(p)
 			if minUser == p.Namespace && complTime < shortestCPUComplt {
 				pod = p
@@ -1260,7 +1216,7 @@ func OnlineDRFExt(allPods []*v1.Pod, client clientset.Interface) *v1.Pod {
 	}
 
 	return nil
-}
+}*/
 
 var NEXT_ROUND = true
 var MIN_USERS = make([]string, 0)
@@ -1287,7 +1243,7 @@ func ProfilingSchedule(allPods []*v1.Pod) *v1.Pod {
 	return nil
 }
 
-func OnlineAlloX_pickUser(allPods []*v1.Pod, client clientset.Interface, alpha float64) *v1.Pod {
+/*func OnlineAlloX_pickUser(allPods []interface{}, client clientset.Interface, alpha float64) *v1.Pod {
 	// get the list of active users (having jobs queued up.)
 	if NEXT_ROUND {
 		activeUsers := GetQueueUsers(allPods)
@@ -1331,7 +1287,8 @@ func OnlineAlloX_pickUser(allPods []*v1.Pod, client clientset.Interface, alpha f
 	}
 
 	ProcessingTimes := []ProcessingTime{}
-	for _, p := range allPods {
+	for _, pod := range allPods {
+		var p = pod.(*framework.QueuedPodInfo).PodInfo.Pod
 		for _, user := range MIN_USERS {
 			if p.Namespace == user {
 				gpuProcessingTime := ProcessingTime{p, true, GetGpuComplTime(p)}
@@ -1373,9 +1330,9 @@ func OnlineAlloX_pickUser(allPods []*v1.Pod, client clientset.Interface, alpha f
 	}
 	// glog.Infof("[tanle] pick pod: %v/%v on isGPU: %v", pod.Namespace, pod.Name, IsGpuPod(pod))
 	return pod
-}
+}*/
 
-func OnlineSJF(allPods []*v1.Pod, client clientset.Interface, alpha float64) *v1.Pod {
+func OnlineSJF(allPods []interface{}, client clientset.Interface, alpha float64) *framework.QueuedPodInfo {
 	// get the list of active users (having jobs queued up.)
 	activeUsers := GetQueueUsers(allPods)
 	nUsers := int(math.Ceil(alpha * float64(len(activeUsers))))
@@ -1407,21 +1364,21 @@ func OnlineSJF(allPods []*v1.Pod, client clientset.Interface, alpha float64) *v1
 	isGPUAvaiable := (capacity.ScalarResources[NvidiaGPU] - usage.ScalarResources[NvidiaGPU]) > NUM_RESERVE_GPU
 	isCPUAvaiable := (capacity.MilliCPU - usage.MilliCPU) > NUM_RESERVE_CPU*MILLI
 	// isCPUAvaiable := GetAllocatableResource().MilliCPU > 0
-	var pod *v1.Pod
+	var podInfo *framework.QueuedPodInfo
 
 	ProcessingTimes := []ProcessingTime{}
-	for _, p := range allPods {
+	for _, pInfo := range allPods {
 		for _, user := range minUsers {
-			if p.Namespace == user {
-				gpuProcessingTime := ProcessingTime{p, true, GetGpuComplTime(p)}
-				cpuProcessingTime := ProcessingTime{p, false, GetCpuComplTime(p)}
+			if pInfo.(*framework.QueuedPodInfo).Pod.Namespace == user {
+				gpuProcessingTime := ProcessingTime{pInfo.(*framework.QueuedPodInfo), true, GetGpuComplTime(pInfo.(*framework.QueuedPodInfo).Pod)}
+				cpuProcessingTime := ProcessingTime{pInfo.(*framework.QueuedPodInfo), false, GetCpuComplTime(pInfo.(*framework.QueuedPodInfo).Pod)}
 				ProcessingTimes = append(ProcessingTimes, gpuProcessingTime)
 				ProcessingTimes = append(ProcessingTimes, cpuProcessingTime)
 			}
 		}
 	}
 	if len(ProcessingTimes) < 1 {
-		return pod
+		return podInfo
 	}
 	sort.SliceStable(ProcessingTimes, func(i, j int) bool {
 		p1 := ProcessingTimes[i].processingTime
@@ -1431,28 +1388,28 @@ func OnlineSJF(allPods []*v1.Pod, client clientset.Interface, alpha float64) *v1
 
 	for _, pt := range ProcessingTimes {
 		if pt.isGPU && isGPUAvaiable {
-			pod = pt.pod
-			repPod, isRep := CreatePodOnOtherDevice(pod, true) //put job on GPU
+			podInfo = pt.podInfo
+			repPod, isRep := CreatePodOnOtherDevice(podInfo, true) //put job on GPU
 			if isRep {
-				SubmitOnOtherDevice(client, pod, repPod)
-				pod = repPod
+				SubmitOnOtherDevice(client, podInfo, repPod)
+				podInfo = repPod
 			}
 			break
 		} else if !pt.isGPU && isCPUAvaiable {
-			pod = pt.pod
-			repPod, isRep := CreatePodOnOtherDevice(pod, false) //put job on CPU
+			podInfo = pt.podInfo
+			repPodInfo, isRep := CreatePodOnOtherDevice(podInfo, false) //put job on CPU
 			if isRep {
-				SubmitOnOtherDevice(client, pod, repPod)
-				pod = repPod
+				SubmitOnOtherDevice(client, podInfo, repPodInfo)
+				podInfo = repPodInfo
 			}
 			break
 		}
 	}
-	glog.Infof("[tanle] pick pod: %v/%v on isGPU: %v", pod.Namespace, pod.Name, IsGpuPod(pod))
-	return pod
+	glog.Infof("[tanle] pick pod: %v/%v on isGPU: %v", podInfo.Pod.Namespace, podInfo.Pod.Name, IsGpuPod(podInfo.Pod))
+	return podInfo
 }
 
-func OnlineAllox(allPods []*v1.Pod, client clientset.Interface, alpha float64) *v1.Pod {
+/*func OnlineAllox(allPods []interface{}, client clientset.Interface, alpha float64) *v1.Pod {
 	_, capacity := GetResourceUsageAndCapacity()
 	// do nothing if capacity is not syned.
 	if capacity.MilliCPU == 0 {
@@ -1521,14 +1478,14 @@ func OnlineAllox(allPods []*v1.Pod, client clientset.Interface, alpha float64) *
 		P[i] = make([]int, nJobs)
 		for j := 0; j < nJobs; j++ {
 			D[i][j] = 0
-			temp := int(AvailableTimes[int64(i)]) - int(ArrivalTimes[allPods[j].Name]) // TODO: use arrival time of a job instead of START_TIME.
+			temp := int(AvailableTimes[int64(i)]) - int(ArrivalTimes[allPods[j].(*framework.QueuedPodInfo).PodInfo.Pod.Name]) // TODO: use arrival time of a job instead of START_TIME.
 			if temp > 0 {
 				D[i][j] = temp
 			}
 			if i < NumOfGPUNodes {
-				P[i][j] = int(GetGpuComplTime(allPods[j]))
+				P[i][j] = int(GetGpuComplTime(allPods[j].(*framework.QueuedPodInfo).PodInfo.Pod))
 			} else {
-				P[i][j] = int(GetCpuComplTime(allPods[j]))
+				P[i][j] = int(GetCpuComplTime(allPods[j].(*framework.QueuedPodInfo).PodInfo.Pod))
 			}
 		}
 	}
@@ -1570,7 +1527,7 @@ func OnlineAllox(allPods []*v1.Pod, client clientset.Interface, alpha float64) *
 			_, busy := PodMachineMap[int64(iM)]
 			if j >= 0 && !busy {
 				if iM < NumOfGPUNodes {
-					pod = allPods[j]
+					pod = allPods[j].(*framework.QueuedPodInfo).PodInfo.Pod
 					repPod, isRep := CreatePodOnOtherDevice(pod, true) //put job on GPU
 					if isRep {
 						SubmitOnOtherDevice(client, pod, repPod)
@@ -1581,7 +1538,7 @@ func OnlineAllox(allPods []*v1.Pod, client clientset.Interface, alpha float64) *
 					PodMachineMap[int64(iM)] = pod.Name
 					return pod
 				} else {
-					pod = allPods[j]
+					pod = allPods[j].(*framework.QueuedPodInfo).PodInfo.Pod
 					repPod, isRep := CreatePodOnOtherDevice(pod, false) //put job on CPU
 					if isRep {
 						SubmitOnOtherDevice(client, pod, repPod)
@@ -1597,39 +1554,7 @@ func OnlineAllox(allPods []*v1.Pod, client clientset.Interface, alpha float64) *
 	}
 
 	return nil
-}
-
-// if isGPUAvaiable {
-// 	shortestGPUComplt := int64(math.MaxInt64)
-// 	for _, p := range allPods {
-// 		complTime, iGPU := GetShortestComplTime(p)
-// 		if iGPU && Contains(minUsers, p.Namespace) && complTime < shortestGPUComplt {
-// 			pod = p
-// 			shortestGPUComplt = complTime
-// 		}
-// 	}
-// 	repPod, isRep := CreatePodOnOtherDevice(pod, true) //put job on GPU
-// 	if isRep {
-// 		SubmitOnOtherDevice(client, pod, repPod)
-// 		pod = repPod
-// 	}
-// 	glog.Infof("[tanle] pick pod: %v/%v on GPU: %v", pod.Namespace, pod.Name, IsGpuPod(pod))
-// } else {
-// 	shortestCPUComplt := int64(math.MaxInt64)
-// 	for _, p := range allPods {
-// 		complTime := GetCpuComplTime(p)
-// 		if Contains(minUsers, p.Namespace) && complTime < shortestCPUComplt {
-// 			pod = p
-// 			shortestCPUComplt = complTime
-// 		}
-// 	}
-// 	repPod, isRep := CreatePodOnOtherDevice(pod, false) //put job on CPU
-// 	if isRep {
-// 		SubmitOnOtherDevice(client, pod, repPod)
-// 		pod = repPod
-// 	}
-// 	glog.Infof("[tanle] pick pod: %v/%v on CPU: %v", pod.Namespace, pod.Name, !IsGpuPod(pod))
-// }
+}*/
 
 // CreateNodeNameToInfoMap obtains a list of pods and pivots that list into a map where the keys are node names
 // and the values are the aggregated information for that node.

@@ -60,6 +60,7 @@ const (
 
 // scheduleOne does the entire scheduling workflow for a single pod. It is serialized on the scheduling algorithm's host fitting.
 func (sched *Scheduler) scheduleOne(ctx context.Context) {
+	klog.V(4).InfoS("starting scheduling for next pod...")
 	podInfo := sched.NextPod()
 	// pod could be nil when schedulerQueue is closed
 	if podInfo == nil || podInfo.Pod == nil {
@@ -78,7 +79,8 @@ func (sched *Scheduler) scheduleOne(ctx context.Context) {
 	}
 
 	klog.V(3).InfoS("Attempting to schedule pod", "pod", klog.KObj(pod))
-
+	time.Sleep(200 * time.Millisecond)//Bing - make sure bind is called correct
+	klog.V(4).InfoS("sleep when attempting to schedule pod to increase job intervals...")
 	// Synchronously attempt to find a fit for the pod.
 	start := time.Now()
 	state := framework.NewCycleState()
@@ -100,13 +102,19 @@ func (sched *Scheduler) scheduleOne(ctx context.Context) {
 	// bind the pod to its host asynchronously (we can do this b/c of the assumption step above).
 	go func() {
 		bindingCycleCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
+		defer func() {
+			//time.Sleep(1000*time.Millisecond)
+			//klog.V(4).InfoS("back from sleep defer cancel...")
+			cancel()
+		}()
+		//time.Sleep(100 * time.Millisecond)//Bing - make sure bind is called correctly
+		// dklog.V(4).InfoS("back from sleep2...")
 		metrics.SchedulerGoroutines.WithLabelValues(metrics.Binding).Inc()
 		defer metrics.SchedulerGoroutines.WithLabelValues(metrics.Binding).Dec()
 		metrics.Goroutines.WithLabelValues(metrics.Binding).Inc()
 		defer metrics.Goroutines.WithLabelValues(metrics.Binding).Dec()
-
+		//time.Sleep(100 * time.Millisecond)//Bing - make sure bind is called correctly
+		//klog.V(4).InfoS("back from sleep3...")
 		status := sched.bindingCycle(bindingCycleCtx, state, fwk, scheduleResult, assumedPodInfo, start, podsToActivate)
 		if !status.IsSuccess() {
 			sched.handleBindingCycleError(bindingCycleCtx, state, fwk, assumedPodInfo, start, scheduleResult, status)
@@ -232,7 +240,7 @@ func (sched *Scheduler) bindingCycle(
 	podsToActivate *framework.PodsToActivate) *framework.Status {
 
 	assumedPod := assumedPodInfo.Pod
-
+	time.Sleep(100 * time.Millisecond)
 	// Run "permit" plugins.
 	if status := fwk.WaitOnPermit(ctx, assumedPod); !status.IsSuccess() {
 		return status

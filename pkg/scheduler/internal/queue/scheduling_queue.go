@@ -47,6 +47,8 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/interpodaffinity"
 	"k8s.io/kubernetes/pkg/scheduler/internal/heap"
+	schedulercache "k8s.io/kubernetes/pkg/scheduler/internal/cache"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/scheduler/metrics"
 	"k8s.io/kubernetes/pkg/scheduler/util"
 	"k8s.io/utils/clock"
@@ -68,6 +70,11 @@ const (
 	unschedulablePods = "Unschedulable"
 
 	preEnqueue = "PreEnqueue"
+
+	//Bing - SJF args
+	OnlineSJF = true
+	ENABLE_PROFILING = false
+	SCHEDULER_PERIOD = 200
 )
 
 const (
@@ -92,6 +99,7 @@ type PreEnqueueCheck func(pod *v1.Pod) bool
 type SchedulingQueue interface {
 	framework.PodNominator
 	Add(pod *v1.Pod) error
+	PickNextPod(clientset.Interface) (*framework.QueuedPodInfo, error) //Bing
 	// Activate moves the given pods to activeQ iff they're in unschedulablePods or backoffQ.
 	// The passed-in pods are originally compiled from plugins that want to activate Pods,
 	// by injecting the pods through a reserved CycleState struct (PodsToActivate).
@@ -393,6 +401,65 @@ func (p *PriorityQueue) addToActiveQ(pInfo *framework.QueuedPodInfo) (bool, erro
 	return true, nil
 }
 
+//Bing
+func getProfileJob(allPods []interface{} ) (*framework.QueuedPodInfo, error) {
+	if !ENABLE_PROFILING {
+		return nil, fmt.Errorf("profile flag not enabled")
+	}
+
+	if len(allPods) > 0 {
+		for _, pod := range allPods {
+			return pod.(*framework.QueuedPodInfo), nil
+		}
+	}
+	return nil, fmt.Errorf("allpods should length 0", allPods...)
+}
+var START_SCHEDULING = false
+//Bing - Pick Next Pod by retrieving the whole queue and then picking the first one within resource limits
+func (p *PriorityQueue) PickNextPod(client clientset.Interface) (*framework.QueuedPodInfo, error) { // tanle
+	for true {
+		time.Sleep(SCHEDULER_PERIOD * time.Millisecond) // we have to wait a bit for next pod comming, otherwhile -> deadlock here.
+		// if periodicCount >= 60000/schedulercache.SCHEDULER_PERIOD {
+		// 	glog.Infof("[tanle] FairScoreMap:  %v", schedulercache.FairScoreMap)
+		// 	periodicCount = 0
+		// } else {
+		// 	periodicCount++
+		// }
+		allPods := p.activeQ.List()
+		var podInfo, _ = getProfileJob(allPods)
+		if ENABLE_PROFILING{
+			//pod = getProfileJob(allPods)
+		} // Bing
+		//var pod = schedulercache.ProfilingSchedule(allPods)
+		if podInfo == nil {
+
+			if len(allPods) >= schedulercache.QUEUED_UP_JOBS {
+				START_SCHEDULING = true
+				schedulercache.START_TIME = time.Now() // TODO: only works for queued up jobs.
+				schedulercache.ARRIVAL_TIME = 0
+			}
+
+			if START_SCHEDULING && len(allPods) > 0 {
+				switch schedulercache.SCHEDULER {
+				
+					case schedulercache.SJF:
+						podInfo = schedulercache.OnlineSJF(allPods, client, schedulercache.AlphaFair)
+						//Bing - package v1.pod to queuepodinfo
+
+				}
+			}
+		}
+
+		if podInfo != nil {
+			p.Delete(podInfo.PodInfo.Pod)
+			return podInfo, nil
+		}
+
+	}
+	return nil, nil
+}
+
+
 // Add adds a pod to the active queue. It should be called only when a new pod
 // is added so there is no chance the pod is already in active/unschedulable/backoff queues
 func (p *PriorityQueue) Add(pod *v1.Pod) error {
@@ -591,6 +658,7 @@ func (p *PriorityQueue) flushUnschedulablePodsLeftover() {
 func (p *PriorityQueue) Pop() (*framework.QueuedPodInfo, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
+	klog.InfoS("Pop called on the scheduling queue. current queue includes pods: ", p.activeQ.List(), "queue len:",  p.activeQ.Len())
 	for p.activeQ.Len() == 0 {
 		// When the queue is empty, invocation of Pop() is blocked until new item is enqueued.
 		// When Close() is called, the p.closed is set and the condition is broadcast,
@@ -1122,17 +1190,24 @@ func newPodNominator(podLister listersv1.PodLister) *nominator {
 
 // MakeNextPodFunc returns a function to retrieve the next pod from a given
 // scheduling queue
-func MakeNextPodFunc(queue SchedulingQueue) func() *framework.QueuedPodInfo {
+func MakeNextPodFunc(client clientset.Interface, queue SchedulingQueue) func() *framework.QueuedPodInfo {
 	return func() *framework.QueuedPodInfo {
-		podInfo, err := queue.Pop()
-		if err == nil {
-			klog.V(4).InfoS("About to try and schedule pod", "pod", klog.KObj(podInfo.Pod))
-			for plugin := range podInfo.UnschedulablePlugins {
-				metrics.UnschedulableReason(plugin, podInfo.Pod.Spec.SchedulerName).Dec()
-			}
+		if OnlineSJF {
+			podInfo, _ := queue.PickNextPod(client); 
 			return podInfo
+			
+		}else {
+			podInfo, err := queue.Pop()
+			if err == nil {
+				klog.V(4).InfoS("About to try and schedule pod", "pod", klog.KObj(podInfo.Pod))
+				for plugin := range podInfo.UnschedulablePlugins {
+					metrics.UnschedulableReason(plugin, podInfo.Pod.Spec.SchedulerName).Dec()
+				}
+				return podInfo
+			}
+			klog.ErrorS(err, "Error while retrieving next pod from scheduling queue")
 		}
-		klog.ErrorS(err, "Error while retrieving next pod from scheduling queue")
+		klog.Error("Error in finding next pod to schedule")
 		return nil
 	}
 }
