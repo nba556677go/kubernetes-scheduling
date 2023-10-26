@@ -367,7 +367,7 @@ func (p *PriorityQueue) runPreEnqueuePlugins(ctx context.Context, pInfo *framewo
 		if s.Code() == framework.Error {
 			klog.ErrorS(s.AsError(), "Unexpected error running PreEnqueue plugin", "pod", klog.KObj(pod), "plugin", pl.Name())
 		} else {
-			klog.V(5).InfoS("Status after running PreEnqueue plugin", "pod", klog.KObj(pod), "plugin", pl.Name(), "status", s)
+			klog.V(5).InfoS("[Bing]Status after running PreEnqueue plugin", "pod", klog.KObj(pod), "plugin", pl.Name(), "status", s)
 		}
 		return false
 	}
@@ -416,23 +416,22 @@ func getProfileJob(allPods []interface{} ) (*framework.QueuedPodInfo, error) {
 }
 var START_SCHEDULING = false
 //Bing - Pick Next Pod by retrieving the whole queue and then picking the first one within resource limits
-func (p *PriorityQueue) PickNextPod(client clientset.Interface) (*framework.QueuedPodInfo, error) { // tanle
+func (p *PriorityQueue) PickNextPod(client clientset.Interface) (*framework.QueuedPodInfo, error) { // Bing
 	for true {
 		time.Sleep(SCHEDULER_PERIOD * time.Millisecond) // we have to wait a bit for next pod comming, otherwhile -> deadlock here.
 		// if periodicCount >= 60000/schedulercache.SCHEDULER_PERIOD {
-		// 	glog.Infof("[tanle] FairScoreMap:  %v", schedulercache.FairScoreMap)
+		// 	glog.Infof("[Bing] FairScoreMap:  %v", schedulercache.FairScoreMap)
 		// 	periodicCount = 0
 		// } else {
 		// 	periodicCount++
 		// }
 		allPods := p.activeQ.List()
 		var podInfo, _ = getProfileJob(allPods)
-		if ENABLE_PROFILING{
-			//pod = getProfileJob(allPods)
-		} // Bing
+		// Bing
+		//klog.V(4).InfoS("[Bing]allpods in queue", allPods)
 		//var pod = schedulercache.ProfilingSchedule(allPods)
 		if podInfo == nil {
-
+			klog.V(4).Info("len allpods %v, QUEUED_UP_JOBS=%v", len(allPods) , schedulercache.QUEUED_UP_JOBS)
 			if len(allPods) >= schedulercache.QUEUED_UP_JOBS {
 				START_SCHEDULING = true
 				schedulercache.START_TIME = time.Now() // TODO: only works for queued up jobs.
@@ -440,6 +439,7 @@ func (p *PriorityQueue) PickNextPod(client clientset.Interface) (*framework.Queu
 			}
 
 			if START_SCHEDULING && len(allPods) > 0 {
+				klog.V(4).InfoS("[Bing]start scheduling... ")
 				switch schedulercache.SCHEDULER {
 				
 					case schedulercache.SJF:
@@ -479,7 +479,7 @@ func (p *PriorityQueue) Add(pod *v1.Pod) error {
 	if err := p.podBackoffQ.Delete(pInfo); err == nil {
 		klog.ErrorS(nil, "Error: pod is already in the podBackoff queue", "pod", klog.KObj(pod))
 	}
-	klog.V(5).InfoS("Pod moved to an internal scheduling queue", "pod", klog.KObj(pod), "event", PodAdd, "queue", activeQName)
+	klog.V(5).InfoS("[Bing]Pod moved to an internal scheduling queue", "pod", klog.KObj(pod), "event", PodAdd, "queue", activeQName)
 	metrics.SchedulerQueueIncomingPods.WithLabelValues("active", PodAdd).Inc()
 	p.addNominatedPodUnlocked(pInfo.PodInfo, nil)
 	p.cond.Broadcast()
@@ -587,11 +587,11 @@ func (p *PriorityQueue) AddUnschedulableIfNotPresent(pInfo *framework.QueuedPodI
 		if err := p.podBackoffQ.Add(pInfo); err != nil {
 			return fmt.Errorf("error adding pod %v to the backoff queue: %v", klog.KObj(pod), err)
 		}
-		klog.V(5).InfoS("Pod moved to an internal scheduling queue", "pod", klog.KObj(pod), "event", ScheduleAttemptFailure, "queue", backoffQName)
+		klog.V(5).InfoS("[Bing]Pod moved to an internal scheduling queue", "pod", klog.KObj(pod), "event", ScheduleAttemptFailure, "queue", backoffQName)
 		metrics.SchedulerQueueIncomingPods.WithLabelValues("backoff", ScheduleAttemptFailure).Inc()
 	} else {
 		p.unschedulablePods.addOrUpdate(pInfo)
-		klog.V(5).InfoS("Pod moved to an internal scheduling queue", "pod", klog.KObj(pod), "event", ScheduleAttemptFailure, "queue", unschedulablePods)
+		klog.V(5).InfoS("[Bing]Pod moved to an internal scheduling queue", "pod", klog.KObj(pod), "event", ScheduleAttemptFailure, "queue", unschedulablePods)
 		metrics.SchedulerQueueIncomingPods.WithLabelValues("unschedulable", ScheduleAttemptFailure).Inc()
 
 	}
@@ -621,7 +621,7 @@ func (p *PriorityQueue) flushBackoffQCompleted() {
 			break
 		}
 		if added, _ := p.addToActiveQ(pInfo); added {
-			klog.V(5).InfoS("Pod moved to an internal scheduling queue", "pod", klog.KObj(pod), "event", BackoffComplete, "queue", activeQName)
+			klog.V(5).InfoS("[Bing]Pod moved to an internal scheduling queue", "pod", klog.KObj(pod), "event", BackoffComplete, "queue", activeQName)
 			metrics.SchedulerQueueIncomingPods.WithLabelValues("active", BackoffComplete).Inc()
 			activated = true
 		}
@@ -658,7 +658,7 @@ func (p *PriorityQueue) flushUnschedulablePodsLeftover() {
 func (p *PriorityQueue) Pop() (*framework.QueuedPodInfo, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	klog.InfoS("Pop called on the scheduling queue. current queue includes pods: ", p.activeQ.List(), "queue len:",  p.activeQ.Len())
+	klog.InfoS("[Bing]Pop called on the scheduling queue. current queue includes pods: ", p.activeQ.List(), "queue len:",  p.activeQ.Len())
 	for p.activeQ.Len() == 0 {
 		// When the queue is empty, invocation of Pop() is blocked until new item is enqueued.
 		// When Close() is called, the p.closed is set and the condition is broadcast,
@@ -729,13 +729,13 @@ func (p *PriorityQueue) Update(oldPod, newPod *v1.Pod) error {
 					return err
 				}
 				p.unschedulablePods.delete(usPodInfo.Pod, gated)
-				klog.V(5).InfoS("Pod moved to an internal scheduling queue", "pod", klog.KObj(pInfo.Pod), "event", PodUpdate, "queue", backoffQName)
+				klog.V(5).InfoS("[Bing]Pod moved to an internal scheduling queue", "pod", klog.KObj(pInfo.Pod), "event", PodUpdate, "queue", backoffQName)
 			} else {
 				if added, err := p.addToActiveQ(pInfo); !added {
 					return err
 				}
 				p.unschedulablePods.delete(usPodInfo.Pod, gated)
-				klog.V(5).InfoS("Pod moved to an internal scheduling queue", "pod", klog.KObj(pInfo.Pod), "event", BackoffComplete, "queue", activeQName)
+				klog.V(5).InfoS("[Bing]Pod moved to an internal scheduling queue", "pod", klog.KObj(pInfo.Pod), "event", BackoffComplete, "queue", activeQName)
 				p.cond.Broadcast()
 			}
 		} else {
@@ -751,7 +751,7 @@ func (p *PriorityQueue) Update(oldPod, newPod *v1.Pod) error {
 		return err
 	}
 	p.addNominatedPodUnlocked(pInfo.PodInfo, nil)
-	klog.V(5).InfoS("Pod moved to an internal scheduling queue", "pod", klog.KObj(pInfo.Pod), "event", PodUpdate, "queue", activeQName)
+	klog.V(5).InfoS("[Bing]Pod moved to an internal scheduling queue", "pod", klog.KObj(pInfo.Pod), "event", PodUpdate, "queue", activeQName)
 	p.cond.Broadcast()
 	return nil
 }
@@ -848,14 +848,14 @@ func (p *PriorityQueue) movePodsToActiveOrBackoffQueue(podInfoList []*framework.
 			if err := p.podBackoffQ.Add(pInfo); err != nil {
 				klog.ErrorS(err, "Error adding pod to the backoff queue", "pod", klog.KObj(pod))
 			} else {
-				klog.V(5).InfoS("Pod moved to an internal scheduling queue", "pod", klog.KObj(pInfo.Pod), "event", event, "queue", backoffQName)
+				klog.V(5).InfoS("[Bing]Pod moved to an internal scheduling queue", "pod", klog.KObj(pInfo.Pod), "event", event, "queue", backoffQName)
 				metrics.SchedulerQueueIncomingPods.WithLabelValues("backoff", event.Label).Inc()
 				p.unschedulablePods.delete(pod, pInfo.Gated)
 			}
 		} else {
 			gated := pInfo.Gated
 			if added, _ := p.addToActiveQ(pInfo); added {
-				klog.V(5).InfoS("Pod moved to an internal scheduling queue", "pod", klog.KObj(pInfo.Pod), "event", event, "queue", activeQName)
+				klog.V(5).InfoS("[Bing]Pod moved to an internal scheduling queue", "pod", klog.KObj(pInfo.Pod), "event", event, "queue", activeQName)
 				activated = true
 				metrics.SchedulerQueueIncomingPods.WithLabelValues("active", event.Label).Inc()
 				p.unschedulablePods.delete(pod, gated)
@@ -1106,11 +1106,11 @@ func (npm *nominator) addNominatedPodUnlocked(pi *framework.PodInfo, nominatingI
 		// If the pod was removed or if it was already scheduled, don't nominate it.
 		updatedPod, err := npm.podLister.Pods(pi.Pod.Namespace).Get(pi.Pod.Name)
 		if err != nil {
-			klog.V(4).InfoS("Pod doesn't exist in podLister, aborted adding it to the nominator", "pod", klog.KObj(pi.Pod))
+			klog.V(4).InfoS("[Bing]Pod doesn't exist in podLister, aborted adding it to the nominator", "pod", klog.KObj(pi.Pod))
 			return
 		}
 		if updatedPod.Spec.NodeName != "" {
-			klog.V(4).InfoS("Pod is already scheduled to a node, aborted adding it to the nominator", "pod", klog.KObj(pi.Pod), "node", updatedPod.Spec.NodeName)
+			klog.V(4).InfoS("[Bing]Pod is already scheduled to a node, aborted adding it to the nominator", "pod", klog.KObj(pi.Pod), "node", updatedPod.Spec.NodeName)
 			return
 		}
 	}
@@ -1118,7 +1118,7 @@ func (npm *nominator) addNominatedPodUnlocked(pi *framework.PodInfo, nominatingI
 	npm.nominatedPodToNode[pi.Pod.UID] = nodeName
 	for _, npi := range npm.nominatedPods[nodeName] {
 		if npi.Pod.UID == pi.Pod.UID {
-			klog.V(4).InfoS("Pod already exists in the nominator", "pod", klog.KObj(npi.Pod))
+			klog.V(4).InfoS("[Bing]Pod already exists in the nominator", "pod", klog.KObj(npi.Pod))
 			return
 		}
 	}
@@ -1199,7 +1199,7 @@ func MakeNextPodFunc(client clientset.Interface, queue SchedulingQueue) func() *
 		}else {
 			podInfo, err := queue.Pop()
 			if err == nil {
-				klog.V(4).InfoS("About to try and schedule pod", "pod", klog.KObj(podInfo.Pod))
+				klog.V(4).InfoS("[Bing]About to try and schedule pod", "pod", klog.KObj(podInfo.Pod))
 				for plugin := range podInfo.UnschedulablePlugins {
 					metrics.UnschedulableReason(plugin, podInfo.Pod.Spec.SchedulerName).Dec()
 				}

@@ -33,7 +33,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	//schedutil "k8s.io/kubernetes/pkg/scheduler/util"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
-	//k8s.io/klog/v2"
+	"k8s.io/klog/v2"
 )
 
 // metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,7 +41,7 @@ import (
 ///// Implemenation for AlloX /////
 
 /*************** IMPORTANT PARAMETERs *******************/
-const SCHEDULER = ES
+const SCHEDULER = SJF
 const AlphaFair = 0.5 //
 const NUM_USERS = 4
 
@@ -54,13 +54,21 @@ var USING_FIFO = false
 const NUM_RESERVE_CPU_NODE = 1 //for master
 const MASTER_CPU_CORES = 20    //for master
 
-var QUEUED_UP_JOBS = 40 //
-var AlloX_DEBUG = true
+//Bing-cluster GPU info. 
 
+var podResourceReq = make(map[*framework.QueuedPodInfo]map[string]int64) //TODO - add to types later
+var GPURESERVED = 2048
+var QUEUED_UP_JOBS = 3 //
+var AlloX_DEBUG = true
+var podTotalMilliCPUReq = 0
+var	podTotalMilliGPUReq = 0
+var	nodeTotalMilliCPU int64
+var	nodeTotalMilliGPU = 24*1024 - GPURESERVED//TODO - switch to milli
+var	nodeAvailMilliGPU = nodeTotalMilliGPU//TODO - switch to milli
 // TODO: WORK AROUND  = break deadlock at begginning.
-const GPU_CAP = 4
+const GPU_CAP = 1
 const CPU_CAP = 8*20000 + GPU_CAP*4000
-const MEM_CAP = 64 * GI
+const MEM_CAP = 24 * GI
 
 const (
 	ES       string = "ES"
@@ -82,6 +90,12 @@ type ProcessingTime struct {
 	processingTime int64
 }
 
+type Profile struct {
+	GPU_MEMORY int64
+	GPU_COMPTIME int64
+	CPU_COMPTIME int64
+}
+
 const IS_TEST = false
 const ENABLE_JOB_SCHEDULING = true
 const ENABLE_ONLINE_SCHEDULER = true
@@ -92,6 +106,7 @@ const NUM_RESERVE_CPU = 0
 const NUM_RESERVE_GPU = 0
 
 const PROFILING_STR = "profiling"
+var CAPACITY = &framework.Resource{MilliCPU: 0, Memory: 0, ScalarResources: map[v1.ResourceName]int64{NvidiaGPU: 0}}
 
 var FairScoreMap = make(map[string]float64)
 var DEBUG = true
@@ -118,9 +133,39 @@ func InitAllNameSpaces(numOfUser int) {
 }
 
 // var CAPACITY = &Resource{MilliCPU: 0, NvidiaGPU: 0, Memory: 0}
-var CAPACITY = &framework.Resource{MilliCPU: 0, Memory: 0, ScalarResources: map[v1.ResourceName]int64{NvidiaGPU: 0}}
+func checkGPUAvailability(podInfo *framework.QueuedPodInfo) bool{
+	klog.V(4).InfoS("checking gpu availbility of pod", "podName", podInfo.Pod.Name) 
+	if nodeAvailMilliGPU > int(podResourceReq[podInfo]["GPU_MEMORY"]){
+		nodeAvailMilliGPU -= int(podResourceReq[podInfo]["GPU_MEMORY"])
+		klog.V(4).InfoS("current availGPU mem", "nodeAvailMilliGPU", nodeAvailMilliGPU)
+		return true
+	}
+	klog.V(4).InfoS("not enough GPU mem.", "nodeAvailMilliGPU", nodeAvailMilliGPU, "pod requested GPU_MEMORY", podResourceReq[podInfo]["GPU_MEMORY"])
+	return false
 
-func UpdateFairScore(pod *v1.Pod, isStart bool) {
+}
+
+func releaseGPUAvailbility(pod *v1.Pod){
+	//called when GPU needs to be released
+	
+}
+
+func getContainerProfile(pod *v1.Pod) map[string]int64 {
+	var Profile = make(map[string]int64)
+	for _, container := range pod.Spec.Containers {
+
+		for _, element := range container.Env{
+			//fmt.Println(element)
+			value, _ := strconv.ParseInt(element.Value, 10, 64)
+			Profile[element.Name] = value
+						
+		}
+	}
+	klog.V(4).InfoS("profile map", "profile", Profile)
+	return Profile
+	
+}
+/*func UpdateFairScore(pod *v1.Pod, isStart bool) {
 
 	if strings.Contains(pod.Name, PROFILING_STR) {
 		return
@@ -131,7 +176,7 @@ func UpdateFairScore(pod *v1.Pod, isStart bool) {
 	p2 := GetGpuComplTime(pod)
 	fairVal := 0.0
 	if CAPACITY.MilliCPU == 0 {
-		glog.Errorf("[tanle] ERROR CAPACITY has not updated yet")
+		glog.Errorf("[Bing] ERROR CAPACITY has not updated yet")
 		return
 	}
 	if p1 < p2 {
@@ -169,8 +214,8 @@ func UpdateFairScore(pod *v1.Pod, isStart bool) {
 		delete(MachinePodMap, pod.Name)
 		delete(PodMachineMap, machineId)
 	}
-	glog.Infof("[tanle] FairScoreMap:  %v", FairScoreMap)
-}
+	glog.Infof("[Bing] FairScoreMap:  %v", FairScoreMap)
+}*/
 
 type FIFO struct {
 	*cache.FIFO
@@ -190,19 +235,7 @@ func DoNotUseReserveResource(isGPU bool) bool {
 		}
 	}
 	return false
-}
-
-func schedPodQueueItems() string {
-	str := ""
-	i := 0
-	allPods := schedPodQueue.List()
-	for _, p := range allPods {
-		str = str + "," + p.(*v1.Pod).Name
-		i++
-	}
-	str = "schedPodQueue.size()=" + strconv.Itoa(i) + ":" + str
-	return str
-}
+} 
 
 func AddToSchedPodQueue(pod *v1.Pod) {
 	allPods := schedPodQueue.List()
@@ -226,7 +259,7 @@ func DeleteFromSchedPodQueue(pod *v1.Pod) {
 	}
 }
 
-// tanle
+// Bing
 func GetSecondaryDemand(pInfo *framework.QueuedPodInfo) (int64, int64, int64) {
 	milliCPU := int64(0)
 	gpu := int64(0)
@@ -298,7 +331,7 @@ func InitParameters() {
 }
 
 func SynClusterInfo(nn map[string]*framework.NodeInfo, n []*v1.Node) {
-	glog.Infof("[tanle] SynClusterInfo %v/%v", CAPACITY)
+	glog.Infof("[Bing] SynClusterInfo %v", CAPACITY)
 	if nn != nil {
 		NodeNameToInfo = nn
 	}
@@ -325,7 +358,7 @@ func RequestedResources() (*framework.Resource, *framework.Resource) {
 		}
 		capacity = sumRes(capacity, capTem)
 	}
-	// glog.Infof("[tanle] RequestedResources: %v/%v", requested, capacity)
+	// glog.Infof("[Bing] RequestedResources: %v/%v", requested, capacity)
 	return requested, capacity
 }
 
@@ -338,15 +371,15 @@ func GetResourceUsageAndCapacity() (*framework.Resource, *framework.Resource) {
 			return &framework.Resource{MilliCPU: 0, Memory: 0, ScalarResources: map[v1.ResourceName]int64{NvidiaGPU: 0}}, &framework.Resource{MilliCPU: 0, Memory: 0, ScalarResources: map[v1.ResourceName]int64{NvidiaGPU: 1}}
 		}
 		// workaround: makesure there is GPU at begining.
-		capacity = &framework.Resource{MilliCPU: CPU_CAP, Memory: MEM_CAP, ScalarResources: map[v1.ResourceName]int64{NvidiaGPU: GPU_CAP}}
-		glog.Infof("[tanle] WORK around capacity %v", capacity)
+		capacity = &framework.Resource{MilliCPU: CPU_CAP, Memory: MEM_CAP, ScalarResources: map[v1.ResourceName]int64{NvidiaGPU: int64(nodeTotalMilliGPU)}}
+		glog.Infof("[Bing] WORK around capacity %v", capacity)
 	} else {
 		allPods := make([]*v1.Pod, 0)
 		for _, node := range nodes {
 			// count the scheduled pods.
 			capTem := NodeNameToInfo[node.Name].Allocatable
 			// usageTemp := NodeNameToInfo[node.Name].RequestedResource()
-			// glog.Infof("[tanle] RequestedResource %v", usageTemp)
+			// glog.Infof("[Bing] RequestedResource %v", usageTemp)
 			mockupGPUCap := int64(NUM_MOCKUP_GPUS_PER_NODE)
 
 			pods := NodeNameToInfo[node.Name].Pods
@@ -417,7 +450,7 @@ func GetResourceUsageAndCapacity() (*framework.Resource, *framework.Resource) {
 // 			}
 // 		}
 // 	}
-// 	glog.Infof("[tanle] updateAvailableTimes() %v, %v/%v", AvailableTimes, NumOfGPUNodes, NumOfCPUNodes)
+// 	glog.Infof("[Bing] updateAvailableTimes() %v, %v/%v", AvailableTimes, NumOfGPUNodes, NumOfCPUNodes)
 // 	return curTime
 // }
 
@@ -436,7 +469,7 @@ func GetAllocatableResource() *framework.Resource {
 	return result
 }
 
-// GetResourceUsageByNamespace obatains the resource usage by namespace (user) //tanle
+// GetResourceUsageByNamespace obatains the resource usage by namespace (user) //Bing
 func GetResourceUsageByNamespace(ns string) *framework.Resource {
 	result, allPods := GetRealResourceUsageByNamespace(ns)
 
@@ -453,7 +486,7 @@ func GetResourceUsageByNamespace(ns string) *framework.Resource {
 				DeleteFromSchedPodQueue(pod) //workaround
 			}
 		}
-		// glog.Infof("[tanle] GetResourceUsageByNamespace %v:%v", ns, result)
+		// glog.Infof("[Bing] GetResourceUsageByNamespace %v:%v", ns, result)
 	}
 
 	return result
@@ -508,7 +541,7 @@ func GetRealResourceUsageByNamespace(ns string) (*framework.Resource, []*v1.Pod)
 			}
 		}
 	}
-	// glog.Infof("[tanle] GetRealResourceUsageByNamespace %v:%v", ns, result)
+	// glog.Infof("[Bing] GetRealResourceUsageByNamespace %v:%v", ns, result)
 	return result, allPods
 }
 
@@ -589,7 +622,7 @@ func SumResource(result *framework.Resource, rl v1.ResourceList, ignoreGPUcpu bo
 		case NvidiaGPU:
 			nvidiaGPU += rQuant.Value()
 			// default:
-			// 	glog.Infof("[tanle] resource: %v=%v", rName, rQuant)
+			// 	glog.Infof("[Bing] resource: %v=%v", rName, rQuant)
 		}
 	}
 	result.ScalarResources[NvidiaGPU] += nvidiaGPU
@@ -650,33 +683,12 @@ func GetDemand(pod *v1.Pod, isGpu bool) (int64, int64, int64) {
 	return milliCPU, gpu, memInGi
 }
 
-// tanle
-func GetGpuComplTime(pod *v1.Pod) int64 {
-	cmdIdx := 4
-	for _, container := range pod.Spec.Containers {
-		// switch demands
-		if strings.Contains(container.Image, "gpu") {
-			cmdIdx = 4 // primary
-		} else {
-			cmdIdx = 5 // secondary
-		}
-		if len(container.Command) < 5 {
-			return -1
-		}
-		strDemands := strings.Split(container.Command[cmdIdx], ",")
-		if len(strDemands) > 3 {
-			str := strings.TrimSpace(strDemands[3])
-			cTime, err := strconv.ParseInt(str, 10, 64)
-			if err != nil {
-				glog.Infof("Failed  to convert cpuDemand %s to int64", strDemands[3])
-			}
-			return cTime
-		}
-	}
-	return -1
+// Bing
+func GetGpuComplTime(profile map[string]int64) int64 {
+	return profile["GPU_COMPTIME"]
 }
 
-func GetShortestComplTime(pod *v1.Pod) (int64, bool) {
+/*func GetShortestComplTime(pod *v1.Pod) (int64, bool) {
 	isGPU := true
 	cpuComplt := int64(GetCpuComplTime(pod))
 	shortestComplt := int64(GetGpuComplTime(pod))
@@ -686,32 +698,10 @@ func GetShortestComplTime(pod *v1.Pod) (int64, bool) {
 	}
 
 	return shortestComplt, isGPU
-}
+}*/
 
-func GetCpuComplTime(pod *v1.Pod) int64 {
-	cmdIdx := 4
-	for _, container := range pod.Spec.Containers {
-		// switch demands
-		if strings.Contains(container.Image, "cpu") {
-			cmdIdx = 4 // primary
-		} else {
-			cmdIdx = 5 // secondary
-		}
-		if len(container.Command) < 5 {
-			return -1
-		}
-		strDemands := strings.Split(container.Command[cmdIdx], ",")
-		if len(strDemands) > 3 {
-			str := strings.TrimSpace(strDemands[3])
-			cTime, err := strconv.ParseInt(str, 10, 64)
-			if err != nil {
-				glog.Infof("Failed  to convert cpuDemand %s to int64", str)
-			} else {
-				return cTime
-			}
-		}
-	}
-	return -1
+func GetCpuComplTime(Profile map[string]int64) int64 {
+	return Profile["CPU_COMPTIME"]
 }
 
 const MILLI = 1000
@@ -719,7 +709,7 @@ const GI = 1024 * 1024 * 1024
 
 func IsGpuPod(pod *v1.Pod) bool {
 	for _, container := range pod.Spec.Containers {
-		if strings.Contains(container.Image, "gpu") {
+		if strings.Contains(container.Command[2], "cuda") {
 			return true
 		}
 	}
@@ -760,6 +750,9 @@ func SubmitOnOtherDevice(client clientset.Interface, pInfo *framework.QueuedPodI
 func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*framework.QueuedPodInfo, bool) {
 	
 	// check the device of the pod
+	//Bing - try to directly return pInfo
+	return pInfo, false
+	/*
 	for _, container := range pInfo.Pod.Spec.Containers {
 		if strings.Contains(container.Image, "gpu") && toBeGPU {
 			return pInfo, false
@@ -768,7 +761,7 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 			return pInfo, false
 		}
 	}
-
+	
 	replicatedPodInfo := pInfo.DeepCopy()
 	for cName, container := range replicatedPodInfo.Pod.Spec.Containers {
 		if toBeGPU {
@@ -813,14 +806,15 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 	// replicatedPod.ResourceVersion = pod.ResourceVersion
 	// replicatedPod.Spec.NodeName = pod.Spec.NodeName
 	// replicatedPod.Annotations = pod.Annotations
-
+	
 	return replicatedPodInfo, true
+	*/
 }
 
 /*func EqualShare(allPods []interface{}, client clientset.Interface) *v1.Pod {
 	// get the list of active users (having jobs queued up.)
 	users := GetQueueUsers(allPods)
-	// glog.Infof("[tanle] active users: %v", users)
+	// glog.Infof("[Bing] active users: %v", users)
 	// get resource usage on each user
 	resourceMap := make(map[string]*framework.Resource)
 	for _, user := range users {
@@ -829,14 +823,14 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 
 	var pod *v1.Pod
 	shortestGPUComplt := int64(math.MaxInt64)
-	isGPUAvaiable := false
+	isGPUAvailable := false
 	usage, capacity := GetResourceUsageAndCapacity()
-	// glog.Infof("[tanle] GetResourceUsageAndCapacity usage/capacity %v/", usage, capacity)
+	// glog.Infof("[Bing] GetResourceUsageAndCapacity usage/capacity %v/", usage, capacity)
 
-	isGPUAvaiable = (capacity.ScalarResources[NvidiaGPU] - usage.ScalarResources[NvidiaGPU]) > NUM_RESERVE_GPU
-	isCPUAvaiable := (capacity.MilliCPU - usage.MilliCPU) > (NUM_RESERVE_CPU)*MILLI
+	isGPUAvailable = (capacity.ScalarResources[NvidiaGPU] - usage.ScalarResources[NvidiaGPU]) > NUM_RESERVE_GPU
+	isCPUAvailable := (capacity.MilliCPU - usage.MilliCPU) > (NUM_RESERVE_CPU)*MILLI
 
-	if isGPUAvaiable {
+	if isGPUAvailable {
 		gpuShare := capacity.ScalarResources[NvidiaGPU] / int64(NUM_USERS)
 		var minUser string
 		minGpuUsage := int64(math.MaxInt64)
@@ -851,7 +845,7 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 
 		// static allocation
 		if minGpuUsage < gpuShare {
-			// glog.Infof("[tanle] pick user: %v", minUser)
+			// glog.Infof("[Bing] pick user: %v", minUser)
 			// pick the pod with the shortest GPU complt.
 			// pod := allPods[0]
 			if USING_FIFO {
@@ -878,13 +872,13 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 				SubmitOnOtherDevice(client, pod, repPod)
 				pod = repPod
 			}
-			// glog.Infof("[tanle] pick pod: %v/%v on GPU: %v", repPod.Namespace, repPod.Name, IsGpuPod(repPod))
+			// glog.Infof("[Bing] pick pod: %v/%v on GPU: %v", repPod.Namespace, repPod.Name, IsGpuPod(repPod))
 			return pod
 		}
 
 	}
 
-	if isCPUAvaiable {
+	if isCPUAvailable {
 		cpuShare := (capacity.MilliCPU - (MASTER_CPU_CORES * MILLI)) / int64(NUM_USERS)
 		roundCPUShare := cpuShare / int64(CPU_DEMAND_PER_JOB*1000)
 
@@ -901,7 +895,7 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 
 		// static allocation
 		if minCpuUsage/int64((CPU_DEMAND_PER_JOB-1)*1000) < roundCPUShare {
-			// glog.Infof("[tanle] pick user: %v", minUser)
+			// glog.Infof("[Bing] pick user: %v", minUser)
 			// pick the pod with the shortest CPU complt.
 			if USING_FIFO {
 				for _, podInfo := range allPods {
@@ -928,7 +922,7 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 				SubmitOnOtherDevice(client, pod, repPod)
 				pod = repPod
 			}
-			// glog.Infof("[tanle] pick pod: %v/%v on CPU: %v", repPod.Namespace, repPod.Name, !IsGpuPod(repPod))
+			// glog.Infof("[Bing] pick pod: %v/%v on CPU: %v", repPod.Namespace, repPod.Name, !IsGpuPod(repPod))
 			return pod
 		}
 	}
@@ -940,18 +934,18 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 /*func OnlineEqualShare(allPods []interface{}, client clientset.Interface) *v1.Pod {
 	// get the list of active users (having jobs queued up.)
 	activeUsers := GetQueueUsers(allPods)
-	// glog.Infof("[tanle] active users: %v", activeUsers)
+	// glog.Infof("[Bing] active users: %v", activeUsers)
 	// get resource usage on each user
 	resourceMap := make(map[string]*framework.Resource)
 	for _, user := range activeUsers {
 		resourceMap[user] = GetResourceUsageByNamespace(user)
 		// resourceMap[user] = GetRealResourceUsageByNamespace(user)
-		// glog.Infof("[tanle] resourceMap[%v]:%v", user, resourceMap[user])
+		// glog.Infof("[Bing] resourceMap[%v]:%v", user, resourceMap[user])
 	}
 
 	var pod *v1.Pod
 	shortestGPUComplt := int64(math.MaxInt64)
-	isGPUAvaiable := false
+	isGPUAvailable := false
 	usage, capacity := GetResourceUsageAndCapacity()
 
 	// do nothing if capacity is not syned.
@@ -959,10 +953,10 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 	// 	return nil
 	// }
 
-	isGPUAvaiable = (capacity.ScalarResources[NvidiaGPU] - usage.ScalarResources[NvidiaGPU]) > NUM_RESERVE_GPU
-	isCPUAvaiable := (capacity.MilliCPU - usage.MilliCPU) > NUM_RESERVE_CPU*MILLI
+	isGPUAvailable = (capacity.ScalarResources[NvidiaGPU] - usage.ScalarResources[NvidiaGPU]) > NUM_RESERVE_GPU
+	isCPUAvailable := (capacity.MilliCPU - usage.MilliCPU) > NUM_RESERVE_CPU*MILLI
 
-	if isGPUAvaiable {
+	if isGPUAvailable {
 		var minUser string
 		minGpuUsage := int64(math.MaxInt64)
 		// pick the user with the least GPU
@@ -973,7 +967,7 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 				minGpuUsage = gpuTemp
 			}
 		}
-		// glog.Infof("[tanle] pick user: %v", minUser)
+		// glog.Infof("[Bing] pick user: %v", minUser)
 		// pick the pod with the shortest GPU complt.
 		// pod := allPods[0]
 		if USING_FIFO {
@@ -1000,9 +994,9 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 			SubmitOnOtherDevice(client, pod, repPod)
 			pod = repPod
 		}
-		// glog.Infof("[tanle] pick pod: %v/%v on GPU: %v", repPod.Namespace, repPod.Name, IsGpuPod(repPod))
+		// glog.Infof("[Bing] pick pod: %v/%v on GPU: %v", repPod.Namespace, repPod.Name, IsGpuPod(repPod))
 		return pod
-	} else if isCPUAvaiable {
+	} else if isCPUAvailable {
 		var minUser string
 		minCpuUsage := int64(math.MaxInt64)
 		// pick the user with the least CPU
@@ -1013,7 +1007,7 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 				minCpuUsage = cpuTemp
 			}
 		}
-		// glog.Infof("[tanle] pick user: %v", minUser)
+		// glog.Infof("[Bing] pick user: %v", minUser)
 		// pick the pod with the shortest CPU complt.
 		if USING_FIFO {
 			for _, podInfo := range allPods {
@@ -1040,7 +1034,7 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 			SubmitOnOtherDevice(client, pod, repPod)
 			pod = repPod
 		}
-		// glog.Infof("[tanle] pick pod: %v/%v on CPU: %v", repPod.Namespace, repPod.Name, !IsGpuPod(repPod))
+		// glog.Infof("[Bing] pick pod: %v/%v on CPU: %v", repPod.Namespace, repPod.Name, !IsGpuPod(repPod))
 		return pod
 	}
 
@@ -1053,10 +1047,10 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 	_, capacity := GetResourceUsageAndCapacity()
 	// do nothing if capacity is not syned.
 	if capacity.MilliCPU == 0 {
-		glog.Infof("[tanle] OnlineDRF %v", capacity)
+		glog.Infof("[Bing] OnlineDRF %v", capacity)
 		return nil
 	}
-	// glog.Infof("[tanle] active users: %v", activeUsers)
+	// glog.Infof("[Bing] active users: %v", activeUsers)
 	// get resource usage on each user
 	resourceMap := make(map[string]*framework.Resource)
 	for _, user := range activeUsers {
@@ -1083,7 +1077,7 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 			minDominantShare = dominantShare
 		}
 	}
-	// glog.Infof("[tanle] pick user: %v", minUser)
+	// glog.Infof("[Bing] pick user: %v", minUser)
 	// pick the pod with the shortest GPU complt.
 	// pod := allPods[0]
 	isGPU := true
@@ -1111,7 +1105,7 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 		}
 	} else {
 		shortestComplt := int64(math.MaxInt64)
-		// glog.Infof("[tanle] usage/capacity %v/%v", usage, capacity)
+		// glog.Infof("[Bing] usage/capacity %v/%v", usage, capacity)
 		complTime := shortestComplt
 		for _, podInfo := range allPods {
 			var p = podInfo.(*framework.QueuedPodInfo).PodInfo.Pod
@@ -1125,7 +1119,7 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 		}
 	}
 
-	// glog.Infof("[tanle] pick pod: %v/%v isGPU: %v", pod.Namespace, pod.Name, IsGpuPod(pod))
+	// glog.Infof("[Bing] pick pod: %v/%v isGPU: %v", pod.Namespace, pod.Name, IsGpuPod(pod))
 	repPod, isRep := CreatePodOnOtherDevice(pod, isGPU) //put job on GPU
 	if isRep {
 		SubmitOnOtherDevice(client, pod, repPod)
@@ -1145,13 +1139,13 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 	// }
 	// virtualCpuUsage := usage.MilliCPU + usage.NvidiaGPU*AVG_BETA
 	virtualCPUCap := capacity.MilliCPU + capacity.ScalarResources[NvidiaGPU]*AVG_BETA
-	// glog.Infof("[tanle] active users: %v", activeUsers)
+	// glog.Infof("[Bing] active users: %v", activeUsers)
 	// get resource usage on each user
 	resourceMap := make(map[string]*framework.Resource)
 	for _, user := range activeUsers {
 		resourceMap[user] = GetResourceUsageByNamespace(user)
 		// resourceMap[user] = GetRealResourceUsageByNamespace(user)
-		// glog.Infof("[tanle] resourceMap[%v]:%v", user, resourceMap[user])
+		// glog.Infof("[Bing] resourceMap[%v]:%v", user, resourceMap[user])
 	}
 	var minUser string
 	minDominantShare := math.MaxFloat64
@@ -1174,12 +1168,12 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 			minDominantShare = dominantShare
 		}
 	}
-	// glog.Infof("[tanle] pick user: %v", minUser)
+	// glog.Infof("[Bing] pick user: %v", minUser)
 
-	isGPUAvaiable := (capacity.ScalarResources[NvidiaGPU] - usage.ScalarResources[NvidiaGPU]) > NUM_RESERVE_GPU
-	isCPUAvaiable := (capacity.MilliCPU - usage.MilliCPU) > NUM_RESERVE_CPU*MILLI
+	isGPUAvailable := (capacity.ScalarResources[NvidiaGPU] - usage.ScalarResources[NvidiaGPU]) > NUM_RESERVE_GPU
+	isCPUAvailable := (capacity.MilliCPU - usage.MilliCPU) > NUM_RESERVE_CPU*MILLI
 	var pod *v1.Pod
-	if isGPUAvaiable {
+	if isGPUAvailable {
 		shortestGPUComplt := int64(math.MaxInt64)
 		for _, pod := range allPods {
 			var p = pod.(*framework.QueuedPodInfo).PodInfo.Pod
@@ -1194,9 +1188,9 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 			SubmitOnOtherDevice(client, pod, repPod)
 			pod = repPod
 		}
-		// glog.Infof("[tanle] pick pod: %v/%v on GPU: %v", pod.Namespace, pod.Name, IsGpuPod(pod))
+		// glog.Infof("[Bing] pick pod: %v/%v on GPU: %v", pod.Namespace, pod.Name, IsGpuPod(pod))
 		return pod
-	} else if isCPUAvaiable {
+	} else if isCPUAvailable {
 		shortestCPUComplt := int64(math.MaxInt64)
 		for _, pod := range allPods {
 			var p = pod.(*framework.QueuedPodInfo).PodInfo.Pod
@@ -1211,7 +1205,7 @@ func CreatePodOnOtherDevice(pInfo *framework.QueuedPodInfo, toBeGPU bool) (*fram
 			SubmitOnOtherDevice(client, pod, repPod)
 			pod = repPod
 		}
-		// glog.Infof("[tanle] pick pod: %v/%v on CPU: %v", pod.Namespace, pod.Name, !IsGpuPod(pod))
+		// glog.Infof("[Bing] pick pod: %v/%v on CPU: %v", pod.Namespace, pod.Name, !IsGpuPod(pod))
 		return pod
 	}
 
@@ -1270,18 +1264,18 @@ func ProfilingSchedule(allPods []*v1.Pod) *v1.Pod {
 		NEXT_ROUND = false
 	}
 
-	// glog.Infof("[tanle] allox picks users: %v", MIN_USERS)
+	// glog.Infof("[Bing] allox picks users: %v", MIN_USERS)
 	usage, capacity := GetResourceUsageAndCapacity()
 	// do nothing if capacity is not syned.
 	if capacity.MilliCPU == 0 {
 		return nil
 	}
-	isGPUAvaiable := (capacity.ScalarResources[NvidiaGPU] - usage.ScalarResources[NvidiaGPU]) > NUM_RESERVE_GPU
-	isCPUAvaiable := (capacity.MilliCPU - usage.MilliCPU) > NUM_RESERVE_CPU*MILLI
-	// isCPUAvaiable := GetAllocatableResource().MilliCPU > 0
+	isGPUAvailable := (capacity.ScalarResources[NvidiaGPU] - usage.ScalarResources[NvidiaGPU]) > NUM_RESERVE_GPU
+	isCPUAvailable := (capacity.MilliCPU - usage.MilliCPU) > NUM_RESERVE_CPU*MILLI
+	// isCPUAvailable := GetAllocatableResource().MilliCPU > 0
 	var pod *v1.Pod
 
-	if !isGPUAvaiable && !isCPUAvaiable {
+	if !isGPUAvailable && !isCPUAvailable {
 		NEXT_ROUND = true
 		return pod
 	}
@@ -1310,7 +1304,7 @@ func ProfilingSchedule(allPods []*v1.Pod) *v1.Pod {
 	})
 
 	for _, pt := range ProcessingTimes {
-		if pt.isGPU && isGPUAvaiable {
+		if pt.isGPU && isGPUAvailable {
 			pod = pt.pod
 			repPod, isRep := CreatePodOnOtherDevice(pod, true) //put job on GPU
 			if isRep {
@@ -1318,7 +1312,7 @@ func ProfilingSchedule(allPods []*v1.Pod) *v1.Pod {
 				pod = repPod
 			}
 			break
-		} else if !pt.isGPU && isCPUAvaiable {
+		} else if !pt.isGPU && isCPUAvailable {
 			pod = pt.pod
 			repPod, isRep := CreatePodOnOtherDevice(pod, false) //put job on CPU
 			if isRep {
@@ -1328,7 +1322,7 @@ func ProfilingSchedule(allPods []*v1.Pod) *v1.Pod {
 			break
 		}
 	}
-	// glog.Infof("[tanle] pick pod: %v/%v on isGPU: %v", pod.Namespace, pod.Name, IsGpuPod(pod))
+	// glog.Infof("[Bing] pick pod: %v/%v on isGPU: %v", pod.Namespace, pod.Name, IsGpuPod(pod))
 	return pod
 }*/
 
@@ -1347,8 +1341,9 @@ func OnlineSJF(allPods []interface{}, client clientset.Interface, alpha float64)
 		score2 := FairScoreMap[user2]
 		return score1 < score2
 	})
-
+	klog.V(4).InfoS("[Bing]fairscore map", "fairscoreMap", FairScoreMap)
 	usage, capacity := GetResourceUsageAndCapacity()
+	klog.V(4).InfoS("[Bing]usage", usage,"capacity", capacity)
 	// do nothing if capacity is not syned.
 	if capacity.MilliCPU == 0 {
 		return nil
@@ -1359,25 +1354,36 @@ func OnlineSJF(allPods []interface{}, client clientset.Interface, alpha float64)
 	for i := 0; i < nUsers; i++ {
 		minUsers = append(minUsers, activeUsers[i])
 	}
-	// glog.Infof("[tanle] FairScoreMap:  %v", FairScoreMap)
-	// glog.Infof("[tanle] allox picks users: %v", minUsers)
-	isGPUAvaiable := (capacity.ScalarResources[NvidiaGPU] - usage.ScalarResources[NvidiaGPU]) > NUM_RESERVE_GPU
-	isCPUAvaiable := (capacity.MilliCPU - usage.MilliCPU) > NUM_RESERVE_CPU*MILLI
-	// isCPUAvaiable := GetAllocatableResource().MilliCPU > 0
+	klog.V(4).InfoS("[Bing]user list sorted with lowest fairscore", "minUsers", minUsers )
+	// glog.Infof("[Bing] FairScoreMap:  %v", FairScoreMap)
+	// glog.Infof("[Bing] allox picks users: %v", minUsers)
+	isGPUAvailable := (capacity.ScalarResources[NvidiaGPU] - usage.ScalarResources[NvidiaGPU]) > NUM_RESERVE_GPU
+	isCPUAvailable := (capacity.MilliCPU - usage.MilliCPU) > NUM_RESERVE_CPU*MILLI
+	klog.V(4).InfoS("[Bing]GPU / CPU available flag", "isGPUAvailable",isGPUAvailable, "isCPUAvailable", isCPUAvailable )
+	// isCPUAvailable := GetAllocatableResource().MilliCPU > 0
 	var podInfo *framework.QueuedPodInfo
 
 	ProcessingTimes := []ProcessingTime{}
 	for _, pInfo := range allPods {
 		for _, user := range minUsers {
-			if pInfo.(*framework.QueuedPodInfo).Pod.Namespace == user {
-				gpuProcessingTime := ProcessingTime{pInfo.(*framework.QueuedPodInfo), true, GetGpuComplTime(pInfo.(*framework.QueuedPodInfo).Pod)}
-				cpuProcessingTime := ProcessingTime{pInfo.(*framework.QueuedPodInfo), false, GetCpuComplTime(pInfo.(*framework.QueuedPodInfo).Pod)}
+			var pod = pInfo.(*framework.QueuedPodInfo).Pod
+			if pod.Namespace == user {
+				var ContainerProfile  = getContainerProfile(pod)
+				klog.V(4).InfoS("[Bing] container profile", "Containerprofile", ContainerProfile)
+				if podResourceReq[pInfo.(*framework.QueuedPodInfo)] == nil{
+					podResourceReq[pInfo.(*framework.QueuedPodInfo)] = make(map[string]int64)
+				}
+				podResourceReq[pInfo.(*framework.QueuedPodInfo)] = ContainerProfile
+				gpuProcessingTime := ProcessingTime{pInfo.(*framework.QueuedPodInfo), true, GetGpuComplTime(ContainerProfile)}
+				cpuProcessingTime := ProcessingTime{pInfo.(*framework.QueuedPodInfo), false, GetCpuComplTime(ContainerProfile)}
 				ProcessingTimes = append(ProcessingTimes, gpuProcessingTime)
 				ProcessingTimes = append(ProcessingTimes, cpuProcessingTime)
 			}
 		}
 	}
+	klog.V(4).InfoS("[Bing] ProcessingTimes", ProcessingTimes)
 	if len(ProcessingTimes) < 1 {
+		
 		return podInfo
 	}
 	sort.SliceStable(ProcessingTimes, func(i, j int) bool {
@@ -1385,18 +1391,21 @@ func OnlineSJF(allPods []interface{}, client clientset.Interface, alpha float64)
 		p2 := ProcessingTimes[j].processingTime
 		return p1 < p2
 	})
-
+	klog.V(4).InfoS("[Bing] sorted ProcessingTimes", ProcessingTimes)
 	for _, pt := range ProcessingTimes {
-		if pt.isGPU && isGPUAvaiable {
+		if pt.isGPU &&  checkGPUAvailability(pt.podInfo) {
 			podInfo = pt.podInfo
+			klog.V(4).InfoS("[Bing] placing pod on GPU", "pod", podInfo.Pod.Name)
 			repPod, isRep := CreatePodOnOtherDevice(podInfo, true) //put job on GPU
 			if isRep {
 				SubmitOnOtherDevice(client, podInfo, repPod)
 				podInfo = repPod
 			}
+			
 			break
-		} else if !pt.isGPU && isCPUAvaiable {
+		} else if !pt.isGPU && isCPUAvailable {
 			podInfo = pt.podInfo
+			klog.V(4).InfoS("[Bing] placing pod on CPU", "pod", podInfo.Pod.Name)
 			repPodInfo, isRep := CreatePodOnOtherDevice(podInfo, false) //put job on CPU
 			if isRep {
 				SubmitOnOtherDevice(client, podInfo, repPodInfo)
@@ -1404,8 +1413,11 @@ func OnlineSJF(allPods []interface{}, client clientset.Interface, alpha float64)
 			}
 			break
 		}
+		klog.V(4).InfoS("current podinfo in for loop processtimes", "podinfo", podInfo.Pod.Name)
 	}
-	glog.Infof("[tanle] pick pod: %v/%v on isGPU: %v", podInfo.Pod.Namespace, podInfo.Pod.Name, IsGpuPod(podInfo.Pod))
+	glog.Infof("[Bing] pick pod: %v/%v on isGPU: %v, checkGPUaviailbility: %v", podInfo.Pod.Namespace, podInfo.Pod.Name, IsGpuPod(podInfo.Pod), checkGPUAvailability(podInfo))
+
+	
 	return podInfo
 }
 
@@ -1413,7 +1425,7 @@ func OnlineSJF(allPods []interface{}, client clientset.Interface, alpha float64)
 	_, capacity := GetResourceUsageAndCapacity()
 	// do nothing if capacity is not syned.
 	if capacity.MilliCPU == 0 {
-		glog.Errorf("[tanle] OnlineAlloX: %v ==> deadlock", capacity)
+		glog.Errorf("[Bing] OnlineAlloX: %v ==> deadlock", capacity)
 		return nil
 	}
 
@@ -1439,7 +1451,7 @@ func OnlineSJF(allPods []interface{}, client clientset.Interface, alpha float64)
 	if len(activeUsers) < nUsers {
 		nUsers = len(activeUsers)
 	}
-	// glog.Infof("[tanle] FairScoreMap:  %v", FairScoreMap)
+	// glog.Infof("[Bing] FairScoreMap:  %v", FairScoreMap)
 	// sort active users based con fair score list
 	sort.SliceStable(activeUsers, func(i, j int) bool {
 		user1 := activeUsers[i]
@@ -1456,10 +1468,10 @@ func OnlineSJF(allPods []interface{}, client clientset.Interface, alpha float64)
 		minUsers = append(minUsers, activeUsers[i])
 	}
 
-	// glog.Infof("[tanle] allox picks users: %v with alpha %v", minUsers, alpha)
-	// isGPUAvaiable := (capacity.ScalarResources[NvidiaGPU] - usage.ScalarResources[NvidiaGPU]) > NUM_RESERVE_GPU
-	// isCPUAvaiable := (capacity.MilliCPU - usage.MilliCPU) > NUM_RESERVE_CPU
-	// isCPUAvaiable := GetAllocatableResource().MilliCPU > 0
+	// glog.Infof("[Bing] allox picks users: %v with alpha %v", minUsers, alpha)
+	// isGPUAvailable := (capacity.ScalarResources[NvidiaGPU] - usage.ScalarResources[NvidiaGPU]) > NUM_RESERVE_GPU
+	// isCPUAvailable := (capacity.MilliCPU - usage.MilliCPU) > NUM_RESERVE_CPU
+	// isCPUAvailable := GetAllocatableResource().MilliCPU > 0
 	var pod *v1.Pod
 	// step 1: update AvailableTimes
 
@@ -1533,7 +1545,7 @@ func OnlineSJF(allPods []interface{}, client clientset.Interface, alpha float64)
 						SubmitOnOtherDevice(client, pod, repPod)
 						pod = repPod
 					}
-					// glog.Infof("[tanle] pick pod: %v/%v on GPU: %v on node %v in %v seconds", pod.Namespace, pod.Name, IsGpuPod(pod), iM, GetGpuComplTime(pod))
+					// glog.Infof("[Bing] pick pod: %v/%v on GPU: %v on node %v in %v seconds", pod.Namespace, pod.Name, IsGpuPod(pod), iM, GetGpuComplTime(pod))
 					MachinePodMap[pod.Name] = int64(iM)
 					PodMachineMap[int64(iM)] = pod.Name
 					return pod
@@ -1544,7 +1556,7 @@ func OnlineSJF(allPods []interface{}, client clientset.Interface, alpha float64)
 						SubmitOnOtherDevice(client, pod, repPod)
 						pod = repPod
 					}
-					// glog.Infof("[tanle] pick pod: %v/%v on CPU: %v on node %v in %v seconds", pod.Namespace, pod.Name, !IsGpuPod(pod), iM, GetCpuComplTime(pod))
+					// glog.Infof("[Bing] pick pod: %v/%v on CPU: %v on node %v in %v seconds", pod.Namespace, pod.Name, !IsGpuPod(pod), iM, GetCpuComplTime(pod))
 					MachinePodMap[pod.Name] = int64(iM)
 					PodMachineMap[int64(iM)] = pod.Name
 					return pod
