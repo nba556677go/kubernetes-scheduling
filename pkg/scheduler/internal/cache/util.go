@@ -1341,13 +1341,14 @@ func OnlineSJF(allPods []interface{}, client clientset.Interface, alpha float64)
 		score2 := FairScoreMap[user2]
 		return score1 < score2
 	})
+	/*
 	klog.V(4).InfoS("[Bing]fairscore map", "fairscoreMap", FairScoreMap)
 	usage, capacity := GetResourceUsageAndCapacity()
 	klog.V(4).InfoS("[Bing]usage", usage,"capacity", capacity)
 	// do nothing if capacity is not syned.
 	if capacity.MilliCPU == 0 {
 		return nil
-	}
+	}*/
 	// pick the set of users with lowest fairscore
 	minUsers := make([]string, 0)
 
@@ -1357,8 +1358,11 @@ func OnlineSJF(allPods []interface{}, client clientset.Interface, alpha float64)
 	klog.V(4).InfoS("[Bing]user list sorted with lowest fairscore", "minUsers", minUsers )
 	// glog.Infof("[Bing] FairScoreMap:  %v", FairScoreMap)
 	// glog.Infof("[Bing] allox picks users: %v", minUsers)
-	isGPUAvailable := (capacity.ScalarResources[NvidiaGPU] - usage.ScalarResources[NvidiaGPU]) > NUM_RESERVE_GPU
-	isCPUAvailable := (capacity.MilliCPU - usage.MilliCPU) > NUM_RESERVE_CPU*MILLI
+	//isGPUAvailable := (capacity.ScalarResources[NvidiaGPU] - usage.ScalarResources[NvidiaGPU]) > NUM_RESERVE_GPU
+	//isCPUAvailable := (capacity.MilliCPU - usage.MilliCPU) > NUM_RESERVE_CPU*MILLI
+	//default true 
+	var isGPUAvailable = true
+	var isCPUAvailable = true
 	klog.V(4).InfoS("[Bing]GPU / CPU available flag", "isGPUAvailable",isGPUAvailable, "isCPUAvailable", isCPUAvailable )
 	// isCPUAvailable := GetAllocatableResource().MilliCPU > 0
 	var podInfo *framework.QueuedPodInfo
@@ -1393,7 +1397,7 @@ func OnlineSJF(allPods []interface{}, client clientset.Interface, alpha float64)
 	})
 	klog.V(4).InfoS("[Bing] sorted ProcessingTimes", ProcessingTimes)
 	for _, pt := range ProcessingTimes {
-		if pt.isGPU &&  checkGPUAvailability(pt.podInfo) {
+		if pt.isGPU &&  isGPUAvailable {
 			podInfo = pt.podInfo
 			klog.V(4).InfoS("[Bing] placing pod on GPU", "pod", podInfo.Pod.Name)
 			repPod, isRep := CreatePodOnOtherDevice(podInfo, true) //put job on GPU

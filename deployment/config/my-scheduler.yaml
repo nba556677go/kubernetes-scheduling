@@ -59,6 +59,16 @@ data:
       - schedulerName: my-scheduler
     leaderElection:
       leaderElect: false    
+    extenders:
+    - urlPrefix: "http://127.0.0.1:32766/gpushare-scheduler"
+      filterVerb: filter
+      bindVerb: bind
+      enableHTTPS: false
+      nodeCacheCapable: true
+      managedResources:
+      - name: aliyun.com/gpu-mem
+        ignoredByScheduler: false
+      ignorable: false
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -109,9 +119,17 @@ spec:
         volumeMounts:
           - name: config-volume
             mountPath: /etc/kubernetes/my-scheduler
+          - mountPath: /etc/kubernetes/scheduler-policy-config.yaml
+            name: scheduler-policy-config
+            readOnly: true
+            
       hostNetwork: false
       hostPID: false
       volumes:
         - name: config-volume
           configMap:
             name: my-scheduler-config
+        - hostPath:
+            path: /etc/kubernetes/scheduler-policy-config.yaml
+            type: FileOrCreate
+          name: scheduler-policy-config

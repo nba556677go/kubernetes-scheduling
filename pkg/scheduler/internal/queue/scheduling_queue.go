@@ -1197,6 +1197,7 @@ func MakeNextPodFunc(client clientset.Interface, queue SchedulingQueue) func() *
 			return podInfo
 			
 		}else {
+			time.Sleep(SCHEDULER_PERIOD * time.Millisecond)
 			podInfo, err := queue.Pop()
 			if err == nil {
 				klog.V(4).InfoS("[Bing]About to try and schedule pod", "pod", klog.KObj(podInfo.Pod))
