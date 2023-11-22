@@ -72,9 +72,9 @@ const (
 	preEnqueue = "PreEnqueue"
 
 	//Bing - SJF args
-	OnlineSJF = true
+	OnlineSJF = false
 	ENABLE_PROFILING = false
-	SCHEDULER_PERIOD = 200
+	SCHEDULER_PERIOD = 500
 )
 
 const (

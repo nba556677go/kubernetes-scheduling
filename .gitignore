@@ -126,4 +126,5 @@ vendordiff.patch
 
 # copied kube-scheduler binary from _output
 /deployment/kube-scheduler
-/deployment/*.log
+#ignore logs
+**.log
